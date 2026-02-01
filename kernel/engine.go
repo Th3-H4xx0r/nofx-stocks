@@ -8,6 +8,7 @@ import (
 	"nofx/logger"
 	"nofx/market"
 	"nofx/mcp"
+	"nofx/ml"
 	"nofx/provider/nofxos"
 	"nofx/security"
 	"nofx/store"
@@ -125,6 +126,10 @@ type Context struct {
 	BTCETHLeverage     int                          `json:"-"`
 	AltcoinLeverage int                                `json:"-"`
 	Timeframes      []string                           `json:"-"`
+
+	// New fields for ML & News
+	NewsSentiment   map[string]float64 `json:"news_sentiment,omitempty"` // -1.0 to 1.0
+	MLPredictions   map[string]*ml.Prediction `json:"ml_predictions,omitempty"`
 }
 
 // Decision AI trading decision
@@ -200,6 +205,12 @@ type OIDeltaData struct {
 type StrategyEngine struct {
 	config       *store.StrategyConfig
 	nofxosClient *nofxos.Client
+	predictor    ml.Predictor
+	sentiment    ml.SentimentAnalyzer
+
+	// Alpaca keys for stock data
+	alpacaAPIKey    string
+	alpacaSecretKey string
 }
 
 // NewStrategyEngine creates strategy execution engine
@@ -214,7 +225,15 @@ func NewStrategyEngine(config *store.StrategyConfig) *StrategyEngine {
 	return &StrategyEngine{
 		config:       config,
 		nofxosClient: client,
+		predictor:    &ml.MockPredictor{}, // Initialize with mock
+		sentiment:    &ml.SimpleSentimentAnalyzer{}, // Initialize with simple analyzer
 	}
+}
+
+// SetAlpacaKeys sets Alpaca API keys for stock data fetching
+func (e *StrategyEngine) SetAlpacaKeys(apiKey, secretKey string) {
+	e.alpacaAPIKey = apiKey
+	e.alpacaSecretKey = secretKey
 }
 
 // GetRiskControlConfig gets risk control configuration
@@ -285,6 +304,11 @@ func GetFullDecisionWithStrategy(ctx *Context, mcpClient mcp.AIClient, engine *S
 		}
 	}
 
+	// Fetch ML Predictions and News Sentiment if enabled
+	if engine.config.MLConfig != nil || engine.config.NewsConfig != nil {
+		enrichContextWithML(ctx, engine)
+	}
+
 	// 2. Build System Prompt using strategy engine
 	riskConfig := engine.GetRiskControlConfig()
 	systemPrompt := engine.BuildSystemPrompt(ctx.Account.TotalEquity, variant)
@@ -325,6 +349,44 @@ func GetFullDecisionWithStrategy(ctx *Context, mcpClient mcp.AIClient, engine *S
 	return decision, nil
 }
 
+// enrichContextWithML enriches context with ML predictions and news sentiment
+func enrichContextWithML(ctx *Context, engine *StrategyEngine) {
+	if engine.config.MLConfig != nil {
+		ctx.MLPredictions = make(map[string]*ml.Prediction)
+		for symbol := range ctx.MarketDataMap {
+			pred, err := engine.predictor.Predict(symbol, ctx.MarketDataMap[symbol])
+			if err == nil {
+				ctx.MLPredictions[symbol] = pred
+			}
+		}
+	}
+
+	if engine.config.NewsConfig != nil && engine.config.NewsConfig.EnableNews {
+		ctx.NewsSentiment = make(map[string]float64)
+		// Fetch news and analyze (simplified)
+		apiKey := engine.config.NewsConfig.APIKey
+		if apiKey != "" {
+			for symbol := range ctx.MarketDataMap {
+				// Fetch news (mocked logic or call market.FetchNews)
+				articles, err := market.FetchNews(symbol, apiKey, engine.config.NewsConfig.SourceDomains, 5)
+				if err == nil && len(articles) > 0 {
+					// Analyze sentiment on titles
+					totalScore := 0.0
+					count := 0
+					for _, art := range articles {
+						score, _ := engine.sentiment.Analyze(art.Title)
+						totalScore += score
+						count++
+					}
+					if count > 0 {
+						ctx.NewsSentiment[symbol] = totalScore / float64(count)
+					}
+				}
+			}
+		}
+	}
+}
+
 // ============================================================================
 // Market Data Fetching
 // ============================================================================
@@ -356,11 +418,19 @@ func fetchMarketDataWithStrategy(ctx *Context, engine *StrategyEngine) error {
 		klineCount = 30
 	}
 
-	logger.Infof("📊 Strategy timeframes: %v, Primary: %s, Kline count: %d", timeframes, primaryTimeframe, klineCount)
+	// Configure data fetcher
+	fetchConfig := market.FetchConfig{Source: "binance"}
+	if config.AssetClass == "stocks" {
+		fetchConfig.Source = "alpaca"
+		fetchConfig.ApiKey = engine.alpacaAPIKey
+		fetchConfig.SecretKey = engine.alpacaSecretKey
+	}
+
+	logger.Infof("📊 Strategy timeframes: %v, Primary: %s, Kline count: %d, Source: %s", timeframes, primaryTimeframe, klineCount, fetchConfig.Source)
 
 	// 1. First fetch data for position coins (must fetch)
 	for _, pos := range ctx.Positions {
-		data, err := market.GetWithTimeframes(pos.Symbol, timeframes, primaryTimeframe, klineCount)
+		data, err := market.GetWithTimeframesAndConfig(pos.Symbol, timeframes, primaryTimeframe, klineCount, fetchConfig)
 		if err != nil {
 			logger.Infof("⚠️  Failed to fetch market data for position %s: %v", pos.Symbol, err)
 			continue
@@ -381,7 +451,7 @@ func fetchMarketDataWithStrategy(ctx *Context, engine *StrategyEngine) error {
 			continue
 		}
 
-		data, err := market.GetWithTimeframes(coin.Symbol, timeframes, primaryTimeframe, klineCount)
+		data, err := market.GetWithTimeframesAndConfig(coin.Symbol, timeframes, primaryTimeframe, klineCount, fetchConfig)
 		if err != nil {
 			logger.Infof("⚠️  Failed to fetch market data for %s: %v", coin.Symbol, err)
 			continue
@@ -390,7 +460,10 @@ func fetchMarketDataWithStrategy(ctx *Context, engine *StrategyEngine) error {
 		// Liquidity filter (skip for xyz dex assets - they don't have OI data from Binance)
 		isExistingPosition := positionSymbols[coin.Symbol]
 		isXyzAsset := market.IsXyzDexAsset(coin.Symbol)
-		if !isExistingPosition && !isXyzAsset && data.OpenInterest != nil && data.CurrentPrice > 0 {
+		// Skip check for stocks
+		isStock := config.AssetClass == "stocks"
+
+		if !isStock && !isExistingPosition && !isXyzAsset && data.OpenInterest != nil && data.CurrentPrice > 0 {
 			oiValue := data.OpenInterest.Latest * data.CurrentPrice
 			oiValueInMillions := oiValue / 1_000_000
 			if oiValueInMillions < minOIThresholdMillions {
@@ -1116,12 +1189,28 @@ func (e *StrategyEngine) writeAvailableIndicators(sb *strings.Builder) {
 		sb.WriteString("- Funding rate\n")
 	}
 
+	if indicators.EnableVWAP {
+		sb.WriteString("- Volume Weighted Average Price (VWAP)\n")
+	}
+
+	if indicators.EnableLRSI {
+		sb.WriteString("- Laguerre RSI (LRSI)\n")
+	}
+
 	if len(e.config.CoinSource.StaticCoins) > 0 || e.config.CoinSource.UseAI500 || e.config.CoinSource.UseOITop {
 		sb.WriteString("- AI500 / OI_Top filter tags (if available)\n")
 	}
 
 	if indicators.EnableQuantData {
 		sb.WriteString("- Quantitative data (institutional/retail fund flow, position changes, multi-period price changes)\n")
+	}
+
+	if e.config.MLConfig != nil {
+		sb.WriteString(fmt.Sprintf("- ML Predictions (%s)\n", e.config.MLConfig.ModelType))
+	}
+
+	if e.config.NewsConfig != nil && e.config.NewsConfig.EnableNews {
+		sb.WriteString("- News Sentiment Analysis\n")
 	}
 }
 
@@ -1273,6 +1362,19 @@ func (e *StrategyEngine) BuildUserPrompt(ctx *Context) string {
 				sb.WriteString(e.formatQuantData(quantData))
 			}
 		}
+
+		// Add ML and News data
+		if ctx.MLPredictions != nil {
+			if pred, ok := ctx.MLPredictions[coin.Symbol]; ok {
+				sb.WriteString(fmt.Sprintf("ML Prediction: %s (Confidence: %.2f)\n", pred.Direction, pred.Confidence))
+			}
+		}
+		if ctx.NewsSentiment != nil {
+			if sentiment, ok := ctx.NewsSentiment[coin.Symbol]; ok {
+				sb.WriteString(fmt.Sprintf("News Sentiment: %.2f\n", sentiment))
+			}
+		}
+
 		sb.WriteString("\n")
 	}
 	sb.WriteString("\n")
@@ -1338,6 +1440,19 @@ func (e *StrategyEngine) formatPositionInfo(index int, pos PositionInfo, ctx *Co
 				sb.WriteString(e.formatQuantData(quantData))
 			}
 		}
+
+		// Add ML and News data for positions too
+		if ctx.MLPredictions != nil {
+			if pred, ok := ctx.MLPredictions[pos.Symbol]; ok {
+				sb.WriteString(fmt.Sprintf("ML Prediction: %s (Confidence: %.2f)\n", pred.Direction, pred.Confidence))
+			}
+		}
+		if ctx.NewsSentiment != nil {
+			if sentiment, ok := ctx.NewsSentiment[pos.Symbol]; ok {
+				sb.WriteString(fmt.Sprintf("News Sentiment: %.2f\n", sentiment))
+			}
+		}
+
 		sb.WriteString("\n")
 	}
 
@@ -1407,6 +1522,14 @@ func (e *StrategyEngine) formatMarketData(data *market.Data) string {
 
 	if indicators.EnableRSI {
 		sb.WriteString(fmt.Sprintf(", current_rsi7 = %.3f", data.CurrentRSI7))
+	}
+
+	if indicators.EnableVWAP && data.CurrentVWAP > 0 {
+		sb.WriteString(fmt.Sprintf(", current_vwap = %.3f", data.CurrentVWAP))
+	}
+
+	if indicators.EnableLRSI && data.CurrentLRSI > 0 {
+		sb.WriteString(fmt.Sprintf(", current_lrsi = %.3f", data.CurrentLRSI))
 	}
 
 	sb.WriteString("\n\n")
@@ -1550,6 +1673,14 @@ func (e *StrategyEngine) formatTimeframeSeriesData(sb *strings.Builder, data *ma
 		sb.WriteString(fmt.Sprintf("BOLL Upper: %s\n", formatFloatSlice(data.BOLLUpper)))
 		sb.WriteString(fmt.Sprintf("BOLL Middle: %s\n", formatFloatSlice(data.BOLLMiddle)))
 		sb.WriteString(fmt.Sprintf("BOLL Lower: %s\n", formatFloatSlice(data.BOLLLower)))
+	}
+
+	if indicators.EnableVWAP && len(data.VWAPValues) > 0 {
+		sb.WriteString(fmt.Sprintf("VWAP: %s\n", formatFloatSlice(data.VWAPValues)))
+	}
+
+	if indicators.EnableLRSI && len(data.LRSIValues) > 0 {
+		sb.WriteString(fmt.Sprintf("LRSI: %s\n", formatFloatSlice(data.LRSIValues)))
 	}
 
 	sb.WriteString("\n")

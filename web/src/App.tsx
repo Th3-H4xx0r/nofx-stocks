@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import useSWR from 'swr'
 import { api } from './lib/api'
 import { TraderDashboardPage } from './pages/TraderDashboardPage'
+import { StockDashboardPage } from './pages/StockDashboardPage'
+import { StockSuggestionsPage } from './pages/StockSuggestionsPage'
 
 import { AITradersPage } from './components/AITradersPage'
 import { LoginPage } from './components/LoginPage'
@@ -39,6 +41,8 @@ type Page =
   | 'competition'
   | 'traders'
   | 'trader'
+  | 'stocks'
+  | 'stock-suggestions'
   | 'backtest'
   | 'strategy'
   | 'strategy-market'
@@ -67,6 +71,8 @@ function App() {
     const hash = window.location.hash.slice(1) // 去掉 #
 
     if (path === '/traders' || hash === 'traders') return 'traders'
+    if (path === '/stocks' || hash === 'stocks') return 'stocks'
+    if (path === '/stock-suggestions' || hash === 'stock-suggestions') return 'stock-suggestions'
     if (path === '/backtest' || hash === 'backtest') return 'backtest'
     if (path === '/strategy' || hash === 'strategy') return 'strategy'
     if (path === '/strategy-market' || hash === 'strategy-market') return 'strategy-market'
@@ -94,6 +100,8 @@ function App() {
       'data': '/data',
       'traders': '/traders',
       'trader': '/dashboard',
+      'stocks': '/stocks',
+      'stock-suggestions': '/stock-suggestions',
       'backtest': '/backtest',
       'strategy': '/strategy',
       'debate': '/debate',
@@ -150,6 +158,10 @@ function App() {
 
       if (path === '/traders' || hash === 'traders') {
         setCurrentPage('traders')
+      } else if (path === '/stocks' || hash === 'stocks') {
+        setCurrentPage('stocks')
+      } else if (path === '/stock-suggestions' || hash === 'stock-suggestions') {
+        setCurrentPage('stock-suggestions')
       } else if (path === '/backtest' || hash === 'backtest') {
         setCurrentPage('backtest')
       } else if (path === '/strategy' || hash === 'strategy') {
@@ -188,12 +200,6 @@ function App() {
     }
   }, [])
 
-  // 切换页面时更新URL hash (当前通过按钮直接调用setCurrentPage，这个函数暂时保留用于未来扩展)
-  // const navigateToPage = (page: Page) => {
-  //   setCurrentPage(page);
-  //   window.location.hash = page === 'competition' ? '' : 'trader';
-  // };
-
   // 获取trader列表（仅在用户登录时）
   const { data: traders, error: tradersError } = useSWR<TraderInfo[]>(
     user && token ? 'traders' : null,
@@ -203,6 +209,10 @@ function App() {
       shouldRetryOnError: false, // 避免在后端未运行时无限重试
     }
   )
+
+  // Filter traders for crypto dashboard (exclude stock traders) and stock dashboard (only stock traders)
+  const cryptoTraders = traders?.filter(t => t.market_type !== 'stock')
+  const stockTraders = traders?.filter(t => t.market_type === 'stock')
 
   // 获取exchanges列表（用于显示交易所名称）
   const { data: exchanges } = useSWR<Exchange[]>(
@@ -227,67 +237,77 @@ function App() {
           setSelectedTraderId(traders[0].trader_id)
         }
       } else {
-        setSelectedTraderId(traders[0].trader_id)
+        // Default to first trader if no slug
+        // If on stock page, try to select first stock trader
+        if (currentPage === 'stocks' && stockTraders && stockTraders.length > 0) {
+           setSelectedTraderId(stockTraders[0].trader_id)
+        } else if (currentPage === 'trader' && cryptoTraders && cryptoTraders.length > 0) {
+           setSelectedTraderId(cryptoTraders[0].trader_id)
+        } else {
+           setSelectedTraderId(traders[0].trader_id)
+        }
       }
     }
-  }, [traders, selectedTraderId, selectedTraderSlug])
+  }, [traders, selectedTraderId, selectedTraderSlug, currentPage])
 
   // 如果在trader页面，获取该trader的数据
+  const shouldFetchData = (currentPage === 'trader' || currentPage === 'stocks') && selectedTraderId;
+
   const { data: status } = useSWR<SystemStatus>(
-    currentPage === 'trader' && selectedTraderId
+    shouldFetchData
       ? `status-${selectedTraderId}`
       : null,
-    () => api.getStatus(selectedTraderId),
+    () => api.getStatus(selectedTraderId!),
     {
-      refreshInterval: 15000, // 15秒刷新（配合后端15秒缓存）
-      revalidateOnFocus: false, // 禁用聚焦时重新验证，减少请求
-      dedupingInterval: 10000, // 10秒去重，防止短时间内重复请求
+      refreshInterval: 15000,
+      revalidateOnFocus: false,
+      dedupingInterval: 10000,
     }
   )
 
   const { data: account } = useSWR<AccountInfo>(
-    currentPage === 'trader' && selectedTraderId
+    shouldFetchData
       ? `account-${selectedTraderId}`
       : null,
-    () => api.getAccount(selectedTraderId),
+    () => api.getAccount(selectedTraderId!),
     {
-      refreshInterval: 15000, // 15秒刷新（配合后端15秒缓存）
-      revalidateOnFocus: false, // 禁用聚焦时重新验证，减少请求
-      dedupingInterval: 10000, // 10秒去重，防止短时间内重复请求
+      refreshInterval: 15000,
+      revalidateOnFocus: false,
+      dedupingInterval: 10000,
     }
   )
 
   const { data: positions } = useSWR<Position[]>(
-    currentPage === 'trader' && selectedTraderId
+    shouldFetchData
       ? `positions-${selectedTraderId}`
       : null,
-    () => api.getPositions(selectedTraderId),
+    () => api.getPositions(selectedTraderId!),
     {
-      refreshInterval: 15000, // 15秒刷新（配合后端15秒缓存）
-      revalidateOnFocus: false, // 禁用聚焦时重新验证，减少请求
-      dedupingInterval: 10000, // 10秒去重，防止短时间内重复请求
+      refreshInterval: 15000,
+      revalidateOnFocus: false,
+      dedupingInterval: 10000,
     }
   )
 
   const { data: decisions } = useSWR<DecisionRecord[]>(
-    currentPage === 'trader' && selectedTraderId
+    shouldFetchData
       ? `decisions/latest-${selectedTraderId}-${decisionsLimit}`
       : null,
-    () => api.getLatestDecisions(selectedTraderId, decisionsLimit),
+    () => api.getLatestDecisions(selectedTraderId!, decisionsLimit),
     {
-      refreshInterval: 30000, // 30秒刷新（决策更新频率较低）
+      refreshInterval: 30000,
       revalidateOnFocus: false,
       dedupingInterval: 20000,
     }
   )
 
   const { data: stats } = useSWR<Statistics>(
-    currentPage === 'trader' && selectedTraderId
+    shouldFetchData
       ? `statistics-${selectedTraderId}`
       : null,
-    () => api.getStatistics(selectedTraderId),
+    () => api.getStatistics(selectedTraderId!),
     {
-      refreshInterval: 30000, // 30秒刷新（统计数据更新频率较低）
+      refreshInterval: 30000,
       revalidateOnFocus: false,
       dedupingInterval: 20000,
     }
@@ -319,6 +339,10 @@ function App() {
       setCurrentPage('traders')
     } else if (route === '/dashboard') {
       setCurrentPage('trader')
+    } else if (route === '/stocks') {
+      setCurrentPage('stocks')
+    } else if (route === '/stock-suggestions') {
+      setCurrentPage('stock-suggestions')
     }
   }, [route])
 
@@ -385,6 +409,8 @@ function App() {
         'strategy-market': '/strategy-market',
         'traders': '/traders',
         'trader': '/dashboard',
+        'stocks': '/stocks',
+        'stock-suggestions': '/stock-suggestions',
         'backtest': '/backtest',
         'strategy': '/strategy',
         'debate': '/debate',
@@ -478,6 +504,40 @@ function App() {
               <StrategyStudioPage />
             ) : currentPage === 'debate' ? (
               <DebateArenaPage />
+            ) : currentPage === 'stocks' ? (
+              <StockDashboardPage
+                selectedTrader={selectedTrader}
+                status={status}
+                account={account}
+                positions={positions}
+                decisions={decisions}
+                decisionsLimit={decisionsLimit}
+                onDecisionsLimitChange={setDecisionsLimit}
+                stats={stats}
+                lastUpdate={lastUpdate}
+                language={language}
+                traders={stockTraders} // Only show stock traders
+                tradersError={tradersError}
+                selectedTraderId={selectedTraderId}
+                onTraderSelect={(traderId) => {
+                  setSelectedTraderId(traderId)
+                  // Update URL param
+                  const trader = traders?.find(t => t.trader_id === traderId)
+                  if (trader) {
+                    const url = new URL(window.location.href)
+                    url.searchParams.set('trader', getTraderSlug(trader))
+                    window.history.replaceState({}, '', url.toString())
+                  }
+                }}
+                onNavigateToTraders={() => {
+                  window.history.pushState({}, '', '/traders')
+                  setRoute('/traders')
+                  setCurrentPage('traders')
+                }}
+                exchanges={exchanges}
+              />
+            ) : currentPage === 'stock-suggestions' ? (
+              <StockSuggestionsPage />
             ) : (
               <TraderDashboardPage
                 selectedTrader={selectedTrader}
@@ -490,12 +550,12 @@ function App() {
                 stats={stats}
                 lastUpdate={lastUpdate}
                 language={language}
-                traders={traders}
+                traders={cryptoTraders} // Only show crypto traders
                 tradersError={tradersError}
                 selectedTraderId={selectedTraderId}
                 onTraderSelect={(traderId) => {
                   setSelectedTraderId(traderId)
-                  // 更新 URL 参数（使用 slug: name-id前4位）
+                  // Update URL param
                   const trader = traders?.find(t => t.trader_id === traderId)
                   if (trader) {
                     const url = new URL(window.location.href)

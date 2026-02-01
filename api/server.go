@@ -190,6 +190,9 @@ func (s *Server) setupRoutes() {
 			protected.POST("/strategies/:id/activate", s.handleActivateStrategy)
 			protected.POST("/strategies/:id/duplicate", s.handleDuplicateStrategy)
 
+			// Stocks
+			protected.GET("/stocks/suggestions", s.handleGetStockSuggestions)
+
 			// Debate Arena
 			protected.GET("/debates", s.debateHandler.HandleListDebates)
 			protected.GET("/debates/personalities", s.debateHandler.HandleGetPersonalities)

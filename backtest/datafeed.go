@@ -73,7 +73,16 @@ func (df *DataFeed) loadAll() error {
 			}
 			fetchEnd := end.Add(dur)
 
-			klines, err := market.GetKlinesRange(symbol, tf, fetchStart, fetchEnd)
+			fetchCfg := market.FetchConfig{
+				Source: "binance",
+			}
+			if df.cfg.AssetClass == "stocks" {
+				fetchCfg.Source = "alpaca"
+				fetchCfg.ApiKey = df.cfg.Alpaca.APIKey
+				fetchCfg.SecretKey = df.cfg.Alpaca.SecretKey
+			}
+
+			klines, err := market.GetKlinesRangeWithConfig(symbol, tf, fetchStart, fetchEnd, fetchCfg)
 			if err != nil {
 				return fmt.Errorf("fetch klines for %s %s: %w", symbol, tf, err)
 			}

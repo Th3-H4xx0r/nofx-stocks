@@ -115,6 +115,11 @@ func (s *Server) handleBacktestStart(c *gin.Context) {
 		return
 	}
 
+	if err := s.hydrateBacktestAlpacaConfig(&cfg); err != nil {
+		SafeBadRequest(c, "Failed to configure Alpaca: "+err.Error())
+		return
+	}
+
 	logger.Infof("📊 Starting backtest with final config: runID=%s, symbols=%v (count=%d), strategyID=%s",
 		cfg.RunID, cfg.Symbols, len(cfg.Symbols), cfg.StrategyID)
 
@@ -780,6 +785,37 @@ func (s *Server) resolveBacktestAIConfig(cfg *backtest.BacktestConfig, userID st
 	cfg.UserID = normalizeUserID(userID)
 
 	return s.hydrateBacktestAIConfig(cfg)
+}
+
+func (s *Server) hydrateBacktestAlpacaConfig(cfg *backtest.BacktestConfig) error {
+	if cfg == nil {
+		return fmt.Errorf("config is nil")
+	}
+	if cfg.AssetClass != "stocks" {
+		return nil
+	}
+	// If keys are already provided, return
+	if cfg.Alpaca.APIKey != "" && cfg.Alpaca.SecretKey != "" {
+		return nil
+	}
+
+	if s.store == nil {
+		return fmt.Errorf("System database not ready, cannot load Alpaca configuration")
+	}
+
+	// Load from store
+	exchanges, err := s.store.Exchange().List(cfg.UserID)
+	if err != nil {
+		return err
+	}
+	for _, ex := range exchanges {
+		if ex.ExchangeType == "alpaca" && ex.Enabled {
+			cfg.Alpaca.APIKey = string(ex.AlpacaAPIKey)
+			cfg.Alpaca.SecretKey = string(ex.AlpacaSecretKey)
+			return nil
+		}
+	}
+	return fmt.Errorf("Alpaca configuration not found for user %s", cfg.UserID)
 }
 
 func (s *Server) hydrateBacktestAIConfig(cfg *backtest.BacktestConfig) error {

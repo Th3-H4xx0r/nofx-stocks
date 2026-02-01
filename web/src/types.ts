@@ -27,6 +27,7 @@ export interface AccountInfo {
   position_count: number
   margin_used: number
   margin_used_pct: number
+  day_trade_count?: number // PDT Protection
 }
 
 export interface Position {
@@ -104,6 +105,7 @@ export interface TraderInfo {
   use_ai500?: boolean
   use_oi_top?: boolean
   system_prompt_template?: string
+  market_type?: 'crypto' | 'stock' // Market type
 }
 
 export interface AIModel {
@@ -118,10 +120,10 @@ export interface AIModel {
 
 export interface Exchange {
   id: string                     // UUID (empty for supported exchange templates)
-  exchange_type: string          // "binance", "bybit", "okx", "hyperliquid", "aster", "lighter"
+  exchange_type: string          // "binance", "bybit", "okx", "hyperliquid", "aster", "lighter", "alpaca"
   account_name: string           // User-defined account name
   name: string                   // Display name
-  type: 'cex' | 'dex'
+  type: 'cex' | 'dex' | 'stock'
   enabled: boolean
   apiKey?: string
   secretKey?: string
@@ -138,10 +140,14 @@ export interface Exchange {
   lighterPrivateKey?: string
   lighterApiKeyPrivateKey?: string
   lighterApiKeyIndex?: number
+  // Alpaca specific
+  alpacaApiKey?: string
+  alpacaSecretKey?: string
+  alpacaPaper?: boolean
 }
 
 export interface CreateExchangeRequest {
-  exchange_type: string          // "binance", "bybit", "okx", "hyperliquid", "aster", "lighter"
+  exchange_type: string          // "binance", "bybit", "okx", "hyperliquid", "aster", "lighter", "alpaca"
   account_name: string           // User-defined account name
   enabled: boolean
   api_key?: string
@@ -156,6 +162,9 @@ export interface CreateExchangeRequest {
   lighter_private_key?: string
   lighter_api_key_private_key?: string
   lighter_api_key_index?: number
+  alpaca_api_key?: string
+  alpaca_secret_key?: string
+  alpaca_paper?: boolean
 }
 
 export interface CreateTraderRequest {
@@ -167,6 +176,7 @@ export interface CreateTraderRequest {
   scan_interval_minutes?: number
   is_cross_margin?: boolean
   show_in_competition?: boolean // 是否在竞技场显示
+  market_type?: 'crypto' | 'stock'
   // 以下字段为向后兼容保留，新版使用策略配置
   btc_eth_leverage?: number
   altcoin_leverage?: number
@@ -208,6 +218,10 @@ export interface UpdateExchangeConfigRequest {
       lighter_private_key?: string
       lighter_api_key_private_key?: string
       lighter_api_key_index?: number
+      // Alpaca specific
+      alpaca_api_key?: string
+      alpaca_secret_key?: string
+      alpaca_paper?: boolean
     }
   }
 }
@@ -244,6 +258,7 @@ export interface TraderConfigData {
   scan_interval_minutes: number
   initial_balance: number
   is_running: boolean
+  market_type?: 'crypto' | 'stock'
   // 以下为旧版字段（向后兼容）
   btc_eth_leverage?: number
   altcoin_leverage?: number
@@ -401,6 +416,7 @@ export interface BacktestStartConfig {
     btc_eth_leverage?: number;
     altcoin_leverage?: number;
   };
+  asset_class?: 'crypto' | 'stock'; // New field for backtest
 }
 
 // Kline data for backtest chart
@@ -463,6 +479,17 @@ export interface PromptSectionsConfig {
   decision_process?: string;
 }
 
+export interface MLConfig {
+  model_type: 'lstm_trend' | 'reinforcement_learning' | 'sentiment_analysis';
+  parameters?: Record<string, any>;
+}
+
+export interface NewsConfig {
+  enable_news: boolean;
+  api_key?: string;
+  source_domains?: string[];
+}
+
 export interface StrategyConfig {
   // Strategy type: "ai_trading" (default) or "grid_trading"
   strategy_type?: 'ai_trading' | 'grid_trading';
@@ -476,6 +503,10 @@ export interface StrategyConfig {
   prompt_sections?: PromptSectionsConfig;
   // Grid trading configuration (only used when strategy_type is 'grid_trading')
   grid_config?: GridStrategyConfig;
+  // ML Configuration
+  ml_config?: MLConfig;
+  // News Configuration
+  news_config?: NewsConfig;
 }
 
 // Grid trading specific configuration
@@ -509,7 +540,7 @@ export interface GridStrategyConfig {
 }
 
 export interface CoinSourceConfig {
-  source_type: 'static' | 'ai500' | 'oi_top' | 'oi_low' | 'mixed';
+  source_type: 'static' | 'ai500' | 'oi_top' | 'oi_low' | 'mixed' | 'stock_suggestions';
   static_coins?: string[];
   excluded_coins?: string[];   // 排除的币种列表
   use_ai500: boolean;
@@ -518,6 +549,7 @@ export interface CoinSourceConfig {
   oi_top_limit?: number;
   use_oi_low: boolean;
   oi_low_limit?: number;
+  use_stock_suggestions?: boolean; // For stocks
   // Note: API URLs are now built automatically using nofxos_api_key from IndicatorConfig
 }
 
@@ -534,6 +566,10 @@ export interface IndicatorConfig {
   enable_volume: boolean;
   enable_oi: boolean;
   enable_funding_rate: boolean;
+  // New indicators
+  enable_vwap: boolean;
+  enable_lrsi: boolean;
+
   ema_periods?: number[];
   rsi_periods?: number[];
   atr_periods?: number[];
@@ -603,6 +639,11 @@ export interface RiskControlConfig {
   min_position_size: number;       // Min position size in USDT (CODE ENFORCED)
   min_risk_reward_ratio: number;   // Min take_profit / stop_loss ratio (AI guided)
   min_confidence: number;          // Min AI confidence to open position (AI guided)
+
+  // New Risk Controls
+  daily_loss_limit?: number;       // Stop trading if daily loss exceeds this amount
+  daily_profit_goal?: number;      // Stop trading if daily profit reaches this amount
+  enforce_pdt?: boolean;           // Enforce Pattern Day Trader rules (stocks)
 }
 
 // Debate Arena Types

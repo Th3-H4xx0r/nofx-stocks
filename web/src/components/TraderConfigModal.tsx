@@ -20,6 +20,7 @@ const EXCHANGE_REGISTRATION_LINKS: Record<string, { url: string; hasReferral?: b
   hyperliquid: { url: 'https://app.hyperliquid.xyz/join/AITRADING', hasReferral: true },
   aster: { url: 'https://www.asterdex.com/en/referral/fdfc0e', hasReferral: true },
   lighter: { url: 'https://app.lighter.xyz/?referral=68151432', hasReferral: true },
+  alpaca: { url: 'https://app.alpaca.markets/signup', hasReferral: false },
 }
 
 import type { TraderConfigData } from '../types'
@@ -35,6 +36,7 @@ interface FormState {
   show_in_competition: boolean
   scan_interval_minutes: number
   initial_balance?: number
+  market_type: 'crypto' | 'stock'
 }
 
 interface TraderConfigModalProps {
@@ -65,6 +67,7 @@ export function TraderConfigModal({
     is_cross_margin: true,
     show_in_competition: true,
     scan_interval_minutes: 3,
+    market_type: 'crypto',
   })
   const [isSaving, setIsSaving] = useState(false)
   const [strategies, setStrategies] = useState<Strategy[]>([])
@@ -103,6 +106,7 @@ export function TraderConfigModal({
       setFormData({
         ...traderData,
         strategy_id: traderData.strategy_id || '',
+        market_type: traderData.market_type || 'crypto',
       })
     } else if (!isEditMode) {
       setFormData({
@@ -113,9 +117,35 @@ export function TraderConfigModal({
         is_cross_margin: true,
         show_in_competition: true,
         scan_interval_minutes: 3,
+        market_type: 'crypto',
       })
     }
   }, [traderData, isEditMode, availableModels, availableExchanges])
+
+  // Filter exchanges based on market type
+  const filteredExchanges = availableExchanges.filter(e => {
+    if (formData.market_type === 'stock') {
+      return e.exchange_type === 'alpaca'
+    } else {
+      return e.exchange_type !== 'alpaca'
+    }
+  })
+
+  // Auto-select first available exchange when market type changes or filtered list updates
+  useEffect(() => {
+    // Only auto-select if current selection is invalid for new market type
+    const currentExchange = availableExchanges.find(e => e.id === formData.exchange_id)
+    const isCurrentValid = currentExchange && (
+      (formData.market_type === 'stock' && currentExchange.exchange_type === 'alpaca') ||
+      (formData.market_type === 'crypto' && currentExchange.exchange_type !== 'alpaca')
+    )
+
+    if (!isCurrentValid && filteredExchanges.length > 0) {
+      setFormData(prev => ({ ...prev, exchange_id: filteredExchanges[0].id }))
+    } else if (filteredExchanges.length === 0) {
+      setFormData(prev => ({ ...prev, exchange_id: '' }))
+    }
+  }, [formData.market_type, availableExchanges, filteredExchanges])
 
   if (!isOpen) return null
 
@@ -167,6 +197,7 @@ export function TraderConfigModal({
         is_cross_margin: formData.is_cross_margin,
         show_in_competition: formData.show_in_competition,
         scan_interval_minutes: formData.scan_interval_minutes,
+        market_type: formData.market_type,
       }
 
       // 只在编辑模式时包含initial_balance
@@ -248,6 +279,36 @@ export function TraderConfigModal({
                   placeholder="请输入交易员名称"
                 />
               </div>
+
+              {/* Market Type Selector */}
+              <div>
+                <label className="text-sm text-[#EAECEF] block mb-2">
+                  市场类型
+                </label>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleInputChange('market_type', 'crypto')}
+                    className={`flex-1 px-3 py-2 rounded text-sm ${formData.market_type === 'crypto'
+                      ? 'bg-[#F0B90B] text-black'
+                      : 'bg-[#0B0E11] text-[#848E9C] border border-[#2B3139]'
+                      }`}
+                  >
+                    加密货币 (Crypto)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleInputChange('market_type', 'stock')}
+                    className={`flex-1 px-3 py-2 rounded text-sm ${formData.market_type === 'stock'
+                      ? 'bg-[#60A5FA] text-black'
+                      : 'bg-[#0B0E11] text-[#848E9C] border border-[#2B3139]'
+                      }`}
+                  >
+                    美股 (Stocks)
+                  </button>
+                </div>
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm text-[#EAECEF] block mb-2">
@@ -278,13 +339,18 @@ export function TraderConfigModal({
                     }
                     className="w-full px-3 py-2 bg-[#0B0E11] border border-[#2B3139] rounded text-[#EAECEF] focus:border-[#F0B90B] focus:outline-none"
                   >
-                    {availableExchanges.map((exchange) => (
+                    {filteredExchanges.map((exchange) => (
                       <option key={exchange.id} value={exchange.id}>
                         {getShortName(exchange.name || exchange.exchange_type || exchange.id).toUpperCase()}
                         {exchange.account_name ? ` - ${exchange.account_name}` : ''}
                       </option>
                     ))}
                   </select>
+                  {filteredExchanges.length === 0 && (
+                    <div className="text-xs text-red-500 mt-1">
+                      {formData.market_type === 'stock' ? '请先配置 Alpaca 账户' : '请先配置交易所账户'}
+                    </div>
+                  )}
                   {/* Exchange Registration Link */}
                   {formData.exchange_id && (() => {
                     // Find the selected exchange to get its type

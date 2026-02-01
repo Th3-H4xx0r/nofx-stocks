@@ -18,6 +18,8 @@ type Page =
   | 'faq'
   | 'login'
   | 'register'
+  | 'stocks'
+  | 'stock-suggestions'
 
 interface HeaderBarProps {
   onLoginClick?: () => void
@@ -103,6 +105,8 @@ export default function HeaderBar({
                 { page: 'strategy-market', path: '/strategy-market', label: language === 'zh' ? '策略市场' : 'Market', requiresAuth: true },
                 { page: 'traders', path: '/traders', label: t('configNav', language), requiresAuth: true },
                 { page: 'trader', path: '/dashboard', label: t('dashboardNav', language), requiresAuth: true },
+                { page: 'stocks', path: '/stocks', label: language === 'zh' ? '美股' : 'Stocks', requiresAuth: true },
+                { page: 'stock-suggestions', path: '/stock-suggestions', label: language === 'zh' ? '选股' : 'Picks', requiresAuth: true },
                 { page: 'strategy', path: '/strategy', label: t('strategyNav', language), requiresAuth: true },
                 { page: 'competition', path: '/competition', label: t('realtimeNav', language), requiresAuth: true },
                 { page: 'debate', path: '/debate', label: t('debateNav', language), requiresAuth: true },
@@ -333,6 +337,8 @@ export default function HeaderBar({
                     { page: 'strategy-market', path: '/strategy-market', label: language === 'zh' ? '策略市场' : 'Market', requiresAuth: true },
                     { page: 'traders', path: '/traders', label: t('configNav', language), requiresAuth: true },
                     { page: 'trader', path: '/dashboard', label: t('dashboardNav', language), requiresAuth: true },
+                    { page: 'stocks', path: '/stocks', label: language === 'zh' ? '美股' : 'Stocks', requiresAuth: true },
+                    { page: 'stock-suggestions', path: '/stock-suggestions', label: language === 'zh' ? '选股' : 'Picks', requiresAuth: true },
                     { page: 'strategy', path: '/strategy', label: t('strategyNav', language), requiresAuth: true },
                     { page: 'competition', path: '/competition', label: t('realtimeNav', language), requiresAuth: true },
                     { page: 'debate', path: '/debate', label: t('debateNav', language), requiresAuth: true },

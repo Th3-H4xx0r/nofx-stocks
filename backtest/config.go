@@ -24,12 +24,19 @@ type LeverageConfig struct {
 	AltcoinLeverage int `json:"altcoin_leverage"`
 }
 
+// AlpacaConfig defines Alpaca configuration for stock backtesting
+type AlpacaConfig struct {
+	APIKey    string `json:"api_key,omitempty"`
+	SecretKey string `json:"secret_key,omitempty"`
+}
+
 // BacktestConfig describes the input configuration for a backtest run.
 type BacktestConfig struct {
 	RunID                string   `json:"run_id"`
 	UserID               string   `json:"user_id,omitempty"`
 	AIModelID            string   `json:"ai_model_id,omitempty"`
 	StrategyID           string   `json:"strategy_id,omitempty"` // Optional: use saved strategy from Strategy Studio
+	AssetClass           string   `json:"asset_class,omitempty"` // "crypto" or "stocks"
 	Symbols              []string `json:"symbols"`
 	Timeframes           []string `json:"timeframes"`
 	DecisionTimeframe    string   `json:"decision_timeframe"`
@@ -49,6 +56,7 @@ type BacktestConfig struct {
 
 	AICfg    AIConfig       `json:"ai"`
 	Leverage LeverageConfig `json:"leverage"`
+	Alpaca   AlpacaConfig   `json:"alpaca,omitempty"`
 
 	SharedAICachePath         string `json:"ai_cache_path,omitempty"`
 	CheckpointIntervalBars    int    `json:"checkpoint_interval_bars,omitempty"`
@@ -74,11 +82,21 @@ func (cfg *BacktestConfig) Validate() error {
 	}
 	cfg.AIModelID = strings.TrimSpace(cfg.AIModelID)
 
+	if cfg.AssetClass == "" {
+		cfg.AssetClass = "crypto"
+	}
+
 	if len(cfg.Symbols) == 0 {
 		return fmt.Errorf("at least one symbol is required")
 	}
 	for i, sym := range cfg.Symbols {
-		cfg.Symbols[i] = market.Normalize(sym)
+		// Only normalize crypto symbols (append USDT), stocks are handled differently or kept as is
+		if cfg.AssetClass == "crypto" {
+			cfg.Symbols[i] = market.Normalize(sym)
+		} else {
+			// For stocks, we might want to just uppercase it
+			cfg.Symbols[i] = strings.ToUpper(sym)
+		}
 	}
 
 	if len(cfg.Timeframes) == 0 {
@@ -153,6 +171,12 @@ func (cfg *BacktestConfig) Validate() error {
 		cfg.Leverage.AltcoinLeverage = 5
 	}
 
+	// Validate Alpaca keys if AssetClass is stocks
+	if cfg.AssetClass == "stocks" {
+		// We don't strictly require them here because they might be injected later by Manager
+		// But ideally they should be present before running DataFeed
+	}
+
 	return nil
 }
 
@@ -203,6 +227,9 @@ func (cfg *BacktestConfig) ToStrategyConfig() *store.StrategyConfig {
 			result.CoinSource.UseOITop = false
 		}
 
+		// Set Asset Class
+		result.AssetClass = cfg.AssetClass
+
 		// Override timeframes with backtest config
 		if len(cfg.Timeframes) > 0 {
 			result.Indicators.Klines.SelectedTimeframes = cfg.Timeframes
@@ -240,6 +267,7 @@ func (cfg *BacktestConfig) ToStrategyConfig() *store.StrategyConfig {
 	}
 
 	return &store.StrategyConfig{
+		AssetClass: cfg.AssetClass,
 		CoinSource: store.CoinSourceConfig{
 			SourceType: "static",
 			StaticCoins: cfg.Symbols,
@@ -263,8 +291,8 @@ func (cfg *BacktestConfig) ToStrategyConfig() *store.StrategyConfig {
 			EnableRSI:         true,
 			EnableATR:         true,
 			EnableVolume:      true,
-			EnableOI:          true,
-			EnableFundingRate: true,
+			EnableOI:          cfg.AssetClass != "stocks",
+			EnableFundingRate: cfg.AssetClass != "stocks",
 			EMAPeriods:        []int{20, 50},
 			RSIPeriods:        []int{7, 14},
 			ATRPeriods:        []int{14},

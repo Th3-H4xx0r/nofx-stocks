@@ -13,6 +13,22 @@ const (
 	binanceMaxKlineLimit    = 1500
 )
 
+// FetchConfig configuration for fetching historical data
+type FetchConfig struct {
+	Source    string // "binance", "alpaca"
+	ApiKey    string
+	SecretKey string
+}
+
+// GetKlinesRangeWithConfig fetches K-line series with specific configuration
+func GetKlinesRangeWithConfig(symbol string, timeframe string, start, end time.Time, config FetchConfig) ([]Kline, error) {
+	if config.Source == "alpaca" {
+		return GetAlpacaKlinesRange(symbol, timeframe, config.ApiKey, config.SecretKey, start, end)
+	}
+	// Default to Binance
+	return GetKlinesRange(symbol, timeframe, start, end)
+}
+
 // GetKlinesRange fetches K-line series within specified time range (closed interval), returns data sorted by time in ascending order.
 func GetKlinesRange(symbol string, timeframe string, start, end time.Time) ([]Kline, error) {
 	symbol = Normalize(symbol)

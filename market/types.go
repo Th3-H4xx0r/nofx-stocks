@@ -11,6 +11,8 @@ type Data struct {
 	CurrentEMA20      float64
 	CurrentMACD       float64
 	CurrentRSI7       float64
+	CurrentVWAP       float64 // Volume Weighted Average Price (Stock)
+	CurrentLRSI       float64 // Laguerre RSI (Stock)
 	OpenInterest      *OIData
 	FundingRate       float64
 	IntradaySeries    *IntradayData
@@ -45,6 +47,9 @@ type TimeframeSeriesData struct {
 	BOLLUpper  []float64 `json:"boll_upper"`  // Upper band
 	BOLLMiddle []float64 `json:"boll_middle"` // Middle band (SMA)
 	BOLLLower  []float64 `json:"boll_lower"`  // Lower band
+	// New Stock Indicators
+	VWAPValues []float64 `json:"vwap_values"` // Volume Weighted Average Price series
+	LRSIValues []float64 `json:"lrsi_values"` // Laguerre RSI series
 }
 
 // OIData Open Interest data
@@ -62,6 +67,8 @@ type IntradayData struct {
 	RSI14Values []float64
 	Volume      []float64
 	ATR14       float64
+	VWAPValues  []float64
+	LRSIValues  []float64
 }
 
 // LongerTermData longer-term data (4-hour timeframe)
@@ -74,6 +81,8 @@ type LongerTermData struct {
 	AverageVolume float64
 	MACDValues    []float64
 	RSI14Values   []float64
+	VWAPValues    []float64
+	LRSIValues    []float64
 }
 
 // Binance API response structure

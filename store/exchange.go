@@ -22,7 +22,7 @@ type Exchange struct {
 	AccountName             string          `gorm:"column:account_name;not null;default:''" json:"account_name"`
 	UserID                  string          `gorm:"column:user_id;not null;default:default;index" json:"user_id"`
 	Name                    string          `gorm:"not null" json:"name"`
-	Type                    string          `gorm:"not null" json:"type"` // "cex" or "dex"
+	Type                    string          `gorm:"not null" json:"type"` // "cex", "dex", "stock"
 	Enabled                 bool            `gorm:"default:false" json:"enabled"`
 	APIKey                  crypto.EncryptedString `gorm:"column:api_key;default:''" json:"apiKey"`
 	SecretKey               crypto.EncryptedString `gorm:"column:secret_key;default:''" json:"secretKey"`
@@ -36,6 +36,9 @@ type Exchange struct {
 	LighterPrivateKey       crypto.EncryptedString `gorm:"column:lighter_private_key;default:''" json:"lighterPrivateKey"`
 	LighterAPIKeyPrivateKey crypto.EncryptedString `gorm:"column:lighter_api_key_private_key;default:''" json:"lighterAPIKeyPrivateKey"`
 	LighterAPIKeyIndex      int             `gorm:"column:lighter_api_key_index;default:0" json:"lighterAPIKeyIndex"`
+	AlpacaAPIKey            crypto.EncryptedString `gorm:"column:alpaca_api_key;default:''" json:"alpacaApiKey"`
+	AlpacaSecretKey         crypto.EncryptedString `gorm:"column:alpaca_secret_key;default:''" json:"alpacaSecretKey"`
+	AlpacaPaper             bool            `gorm:"column:alpaca_paper;default:true" json:"alpacaPaper"`
 	CreatedAt               time.Time       `json:"created_at"`
 	UpdatedAt               time.Time       `json:"updated_at"`
 }
@@ -80,7 +83,7 @@ func (s *ExchangeStore) migrateToMultiAccount() error {
 	// Check if migration is needed by looking for old-style IDs (non-UUID)
 	var count int64
 	err := s.db.Model(&Exchange{}).
-		Where("exchange_type = '' AND id IN ?", []string{"binance", "bybit", "okx", "bitget", "hyperliquid", "aster", "lighter"}).
+		Where("exchange_type = '' AND id IN ?", []string{"binance", "bybit", "okx", "bitget", "hyperliquid", "aster", "lighter", "alpaca"}).
 		Count(&count).Error
 	if err != nil {
 		return err
@@ -94,7 +97,7 @@ func (s *ExchangeStore) migrateToMultiAccount() error {
 
 	// Get all old records
 	var records []Exchange
-	err = s.db.Where("exchange_type = '' AND id IN ?", []string{"binance", "bybit", "okx", "bitget", "hyperliquid", "aster", "lighter"}).
+	err = s.db.Where("exchange_type = '' AND id IN ?", []string{"binance", "bybit", "okx", "bitget", "hyperliquid", "aster", "lighter", "alpaca"}).
 		Find(&records).Error
 	if err != nil {
 		return err
@@ -173,6 +176,8 @@ func getExchangeNameAndType(exchangeType string) (name string, typ string) {
 		return "Aster DEX", "dex"
 	case "lighter":
 		return "LIGHTER DEX", "dex"
+	case "alpaca":
+		return "Alpaca", "stock"
 	default:
 		return exchangeType + " Exchange", "cex"
 	}
@@ -182,7 +187,8 @@ func getExchangeNameAndType(exchangeType string) (name string, typ string) {
 func (s *ExchangeStore) Create(userID, exchangeType, accountName string, enabled bool,
 	apiKey, secretKey, passphrase string, testnet bool,
 	hyperliquidWalletAddr, asterUser, asterSigner, asterPrivateKey,
-	lighterWalletAddr, lighterPrivateKey, lighterApiKeyPrivateKey string, lighterApiKeyIndex int) (string, error) {
+	lighterWalletAddr, lighterPrivateKey, lighterApiKeyPrivateKey string, lighterApiKeyIndex int,
+	alpacaApiKey, alpacaSecretKey string, alpacaPaper bool) (string, error) {
 
 	id := uuid.New().String()
 	name, typ := getExchangeNameAndType(exchangeType)
@@ -214,6 +220,9 @@ func (s *ExchangeStore) Create(userID, exchangeType, accountName string, enabled
 		LighterPrivateKey:       crypto.EncryptedString(lighterPrivateKey),
 		LighterAPIKeyPrivateKey: crypto.EncryptedString(lighterApiKeyPrivateKey),
 		LighterAPIKeyIndex:      lighterApiKeyIndex,
+		AlpacaAPIKey:            crypto.EncryptedString(alpacaApiKey),
+		AlpacaSecretKey:         crypto.EncryptedString(alpacaSecretKey),
+		AlpacaPaper:             alpacaPaper,
 	}
 
 	if err := s.db.Create(exchange).Error; err != nil {
@@ -224,7 +233,8 @@ func (s *ExchangeStore) Create(userID, exchangeType, accountName string, enabled
 
 // Update updates exchange configuration by UUID
 func (s *ExchangeStore) Update(userID, id string, enabled bool, apiKey, secretKey, passphrase string, testnet bool,
-	hyperliquidWalletAddr, asterUser, asterSigner, asterPrivateKey, lighterWalletAddr, lighterPrivateKey, lighterApiKeyPrivateKey string, lighterApiKeyIndex int) error {
+	hyperliquidWalletAddr, asterUser, asterSigner, asterPrivateKey, lighterWalletAddr, lighterPrivateKey, lighterApiKeyPrivateKey string, lighterApiKeyIndex int,
+	alpacaApiKey, alpacaSecretKey string, alpacaPaper bool) error {
 
 	logger.Debugf("🔧 ExchangeStore.Update: userID=%s, id=%s, enabled=%v", userID, id, enabled)
 
@@ -236,6 +246,7 @@ func (s *ExchangeStore) Update(userID, id string, enabled bool, apiKey, secretKe
 		"aster_signer":            asterSigner,
 		"lighter_wallet_addr":     lighterWalletAddr,
 		"lighter_api_key_index":   lighterApiKeyIndex,
+		"alpaca_paper":            alpacaPaper,
 		"updated_at":              time.Now().UTC(),
 	}
 
@@ -257,6 +268,12 @@ func (s *ExchangeStore) Update(userID, id string, enabled bool, apiKey, secretKe
 	}
 	if lighterApiKeyPrivateKey != "" {
 		updates["lighter_api_key_private_key"] = crypto.EncryptedString(lighterApiKeyPrivateKey)
+	}
+	if alpacaApiKey != "" {
+		updates["alpaca_api_key"] = crypto.EncryptedString(alpacaApiKey)
+	}
+	if alpacaSecretKey != "" {
+		updates["alpaca_secret_key"] = crypto.EncryptedString(alpacaSecretKey)
 	}
 
 	result := s.db.Model(&Exchange{}).Where("id = ? AND user_id = ?", id, userID).Updates(updates)
@@ -305,9 +322,9 @@ func (s *ExchangeStore) CreateLegacy(userID, id, name, typ string, enabled bool,
 	hyperliquidWalletAddr, asterUser, asterSigner, asterPrivateKey string) error {
 
 	// Check if this is an old-style ID (exchange type as ID)
-	if id == "binance" || id == "bybit" || id == "okx" || id == "bitget" || id == "hyperliquid" || id == "aster" || id == "lighter" {
+	if id == "binance" || id == "bybit" || id == "okx" || id == "bitget" || id == "hyperliquid" || id == "aster" || id == "lighter" || id == "alpaca" {
 		_, err := s.Create(userID, id, "Default", enabled, apiKey, secretKey, "", testnet,
-			hyperliquidWalletAddr, asterUser, asterSigner, asterPrivateKey, "", "", "", 0)
+			hyperliquidWalletAddr, asterUser, asterSigner, asterPrivateKey, "", "", "", 0, "", "", true)
 		return err
 	}
 
