@@ -24,7 +24,7 @@ export default function HowItWorksSection({ language }: HowItWorksSectionProps) 
       desc: language === 'zh'
         ? '通过浏览器访问你的服务器'
         : 'Access your server via browser',
-      code: 'http://YOUR_SERVER_IP:3000',
+      code: 'http://YOUR_SERVER_IP:3009',
     },
     {
       icon: TrendingUp,

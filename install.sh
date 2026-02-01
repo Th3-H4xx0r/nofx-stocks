@@ -103,7 +103,7 @@ generate_env() {
 
 # Server ports
 NOFX_BACKEND_PORT=8080
-NOFX_FRONTEND_PORT=3000
+NOFX_FRONTEND_PORT=3009
 
 # Timezone
 TZ=Asia/Shanghai
@@ -243,7 +243,7 @@ print_success() {
     echo -e "║              🎉 Installation Complete! 🎉                   ║"
     echo -e "╚════════════════════════════════════════════════════════════╝${NC}"
     echo ""
-    echo -e "  ${BLUE}Web Interface:${NC}  http://${SERVER_IP}:3000"
+    echo -e "  ${BLUE}Web Interface:${NC}  http://${SERVER_IP}:3009"
     echo -e "  ${BLUE}API Endpoint:${NC}   http://${SERVER_IP}:8080"
     echo -e "  ${BLUE}Install Dir:${NC}    $INSTALL_DIR"
     echo ""
@@ -264,13 +264,13 @@ print_success() {
     echo "  $COMPOSE_CMD pull && $COMPOSE_CMD up -d  # Update to latest"
     echo ""
     echo -e "${YELLOW}Next Steps:${NC}"
-    echo "  1. Open http://${SERVER_IP}:3000 in your browser"
+    echo "  1. Open http://${SERVER_IP}:3009 in your browser"
     echo "  2. Configure AI Models (DeepSeek, OpenAI, etc.)"
     echo "  3. Configure Exchanges (Binance, Hyperliquid, etc.)"
     echo "  4. Create a Strategy in Strategy Studio"
     echo "  5. Create a Trader and start trading!"
     echo ""
-    echo -e "${YELLOW}Note:${NC} If accessing from local machine, use http://127.0.0.1:3000"
+    echo -e "${YELLOW}Note:${NC} If accessing from local machine, use http://127.0.0.1:3009"
     echo ""
     echo -e "${RED}⚠️  Risk Warning: AI trading carries significant risks.${NC}"
     echo -e "${RED}   Only use funds you can afford to lose!${NC}"

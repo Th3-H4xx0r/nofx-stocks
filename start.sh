@@ -179,16 +179,16 @@ check_encryption() {
 # ------------------------------------------------------------------------
 read_env_vars() {
     if [ -f ".env" ]; then
-        NOFX_FRONTEND_PORT=$(grep "^NOFX_FRONTEND_PORT=" .env 2>/dev/null | cut -d'=' -f2 || echo "3000")
+        NOFX_FRONTEND_PORT=$(grep "^NOFX_FRONTEND_PORT=" .env 2>/dev/null | cut -d'=' -f2 || echo "3009")
         NOFX_BACKEND_PORT=$(grep "^NOFX_BACKEND_PORT=" .env 2>/dev/null | cut -d'=' -f2 || echo "8080")
 
         NOFX_FRONTEND_PORT=$(echo "$NOFX_FRONTEND_PORT" | tr -d '"'"'" | tr -d ' ')
         NOFX_BACKEND_PORT=$(echo "$NOFX_BACKEND_PORT" | tr -d '"'"'" | tr -d ' ')
 
-        NOFX_FRONTEND_PORT=${NOFX_FRONTEND_PORT:-3000}
+        NOFX_FRONTEND_PORT=${NOFX_FRONTEND_PORT:-3009}
         NOFX_BACKEND_PORT=${NOFX_BACKEND_PORT:-8080}
     else
-        NOFX_FRONTEND_PORT=3000
+        NOFX_FRONTEND_PORT=3009
         NOFX_BACKEND_PORT=8080
     fi
 }

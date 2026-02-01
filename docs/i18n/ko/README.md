@@ -101,7 +101,7 @@ chmod +x ./start.sh
 ./start.sh start --build
 ```
 
-웹 인터페이스 접속: **http://localhost:3000**
+웹 인터페이스 접속: **http://localhost:3009**
 
 ### 최신 버전 유지
 
@@ -165,7 +165,7 @@ cd web && npm run dev
 curl -fsSL https://raw.githubusercontent.com/NoFxAiOS/nofx/main/install.sh | bash
 ```
 
-`http://YOUR_SERVER_IP:3000`을 통해 액세스 - 즉시 작동합니다.
+`http://YOUR_SERVER_IP:3009`을 통해 액세스 - 즉시 작동합니다.
 
 ### 향상된 보안 (HTTPS)
 
@@ -196,7 +196,7 @@ TRANSPORT_ENCRYPTION=true
    - 암호화 모드를 **Flexible**로 설정
 
    ```
-   User ──[HTTPS]──→ Cloudflare ──[HTTP]──→ Your Server:3000
+   User ──[HTTPS]──→ Cloudflare ──[HTTP]──→ Your Server:3009
    ```
 
 4. **전송 암호화 활성화**

@@ -101,7 +101,7 @@ chmod +x ./start.sh
 ./start.sh start --build
 ```
 
-Доступ к веб-интерфейсу: **http://localhost:3000**
+Доступ к веб-интерфейсу: **http://localhost:3009**
 
 ### Обновление до последней версии
 

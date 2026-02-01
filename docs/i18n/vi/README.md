@@ -101,7 +101,7 @@ chmod +x ./start.sh
 ./start.sh start --build
 ```
 
-Truy cập giao diện Web: **http://localhost:3000**
+Truy cập giao diện Web: **http://localhost:3009**
 
 ### Cập Nhật Phiên Bản Mới
 

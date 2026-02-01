@@ -9,7 +9,7 @@
 提交 bug 前，请检查：
 
 1. ✅ **后端正在运行**: `docker compose ps` 或 `ps aux | grep nofx`
-2. ✅ **前端可访问**: 在浏览器打开 http://localhost:3000
+2. ✅ **前端可访问**: 在浏览器打开 http://localhost:3009
 3. ✅ **API 正常响应**: `curl http://localhost:8080/api/health`
 4. ✅ **检查日志中的错误**: 参见下方 [如何捕获日志](#如何捕获日志)
 
@@ -263,7 +263,7 @@ NOFX_BACKEND_PORT=8081
 
 2. **检查端口配置:**
    - 后端默认: 8080
-   - 前端默认: 3000
+   - 前端默认: 3009
    - 确认 `.env` 设置匹配
 
 3. **CORS 问题:**
@@ -582,7 +582,7 @@ docker compose down -v
 docker compose up -d --build
 
 # 通过 Web UI 重新配置
-open http://localhost:3000
+open http://localhost:3009
 ```
 
 **部分重置（保留配置，清除日志）:**
