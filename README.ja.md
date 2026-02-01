@@ -305,7 +305,7 @@ docker compose up -d --build
 
 #### ステップ3：ダッシュボードにアクセス
 
-ブラウザを開いて次にアクセス：**http://localhost:3000**
+ブラウザを開いて次にアクセス：**http://localhost:3009**
 
 **これで完了！🎉** AIトレーディングシステムが稼働中です！
 
@@ -824,12 +824,12 @@ npm run dev
 ```
 VITE v5.x.x  ready in xxx ms
 
-➜  Local:   http://localhost:3000/
+➜  Local:   http://localhost:3009/
 ➜  Network: use --host to expose
 ```
 
 **✅ フロントエンドが実行されているとき：**
-- "Local: http://localhost:3000/"メッセージ
+- "Local: http://localhost:3009/"メッセージ
 - エラーメッセージなし
 - このターミナルウィンドウも開いたままにしてください！
 
@@ -839,7 +839,7 @@ VITE v5.x.x  ready in xxx ms
 
 Webブラウザを開いて次にアクセス：
 
-**🌐 http://localhost:3000**
+**🌐 http://localhost:3009**
 
 **表示されるもの：**
 - 📊 リアルタイムアカウント残高

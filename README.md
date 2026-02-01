@@ -156,7 +156,7 @@ To use NOFX, you'll need:
 curl -fsSL https://raw.githubusercontent.com/NoFxAiOS/nofx/main/install.sh | bash
 ```
 
-That's it! Open **http://127.0.0.1:3000** in your browser.
+That's it! Open **http://127.0.0.1:3009** in your browser.
 
 ### One-Click Cloud Deploy (Railway)
 
@@ -174,7 +174,7 @@ curl -O https://raw.githubusercontent.com/NoFxAiOS/nofx/main/docker-compose.prod
 docker compose -f docker-compose.prod.yml up -d
 ```
 
-Access Web Interface: **http://127.0.0.1:3000**
+Access Web Interface: **http://127.0.0.1:3009**
 
 ```bash
 # Management commands
@@ -235,7 +235,7 @@ cd web
 npm run dev
 ```
 
-Access Web Interface: **http://127.0.0.1:3000**
+Access Web Interface: **http://127.0.0.1:3009**
 
 ---
 
@@ -255,7 +255,7 @@ Access Web Interface: **http://127.0.0.1:3000**
    docker compose -f docker-compose.prod.yml up -d
    ```
 
-3. **Access**: Open **http://127.0.0.1:3000** in your browser
+3. **Access**: Open **http://127.0.0.1:3009** in your browser
 
 ### Method 2: WSL2 (For Development)
 
@@ -305,7 +305,7 @@ Access Web Interface: **http://127.0.0.1:3000**
    cd web && npm install && npm run dev
    ```
 
-5. **Access**: Open **http://127.0.0.1:3000** in Windows browser
+5. **Access**: Open **http://127.0.0.1:3009** in Windows browser
 
 ### Method 3: Docker in WSL2 (Best of Both Worlds)
 
@@ -331,7 +331,7 @@ By default, transport encryption is **disabled**, allowing you to access NOFX vi
 curl -fsSL https://raw.githubusercontent.com/NoFxAiOS/nofx/main/install.sh | bash
 ```
 
-Access via `http://YOUR_SERVER_IP:3000` - works immediately.
+Access via `http://YOUR_SERVER_IP:3009` - works immediately.
 
 ### Enhanced Security (HTTPS)
 
@@ -362,7 +362,7 @@ When enabled, browser uses Web Crypto API to encrypt API keys before transmissio
    - Set encryption mode to **Flexible**
 
    ```
-   User ──[HTTPS]──→ Cloudflare ──[HTTP]──→ Your Server:3000
+   User ──[HTTPS]──→ Cloudflare ──[HTTP]──→ Your Server:3009
    ```
 
 4. **Enable transport encryption**

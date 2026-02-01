@@ -44,7 +44,7 @@ After creation, save these immediately:
 
 Add your agent wallet through the NOFX web interface:
 
-1. Open NOFX dashboard (http://localhost:3000)
+1. Open NOFX dashboard (http://localhost:3009)
 2. Go to **Exchange Configuration**
 3. Enable **Lighter**
 4. Enter:

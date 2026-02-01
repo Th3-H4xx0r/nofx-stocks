@@ -742,7 +742,7 @@ export const translations = {
     fullControlDesc: 'Complete control over AI prompts and funds',
     startupMessages1: 'Starting automated trading system...',
     startupMessages2: 'API server started on port 8080',
-    startupMessages3: 'Web console http://127.0.0.1:3000',
+    startupMessages3: 'Web console http://127.0.0.1:3009',
 
     // How It Works Section
     howToStart: 'How to Get Started with NOFX',
@@ -844,11 +844,11 @@ export const translations = {
     // ===== INSTALLATION =====
     faqHowToInstall: 'How do I install NOFX?',
     faqHowToInstallAnswer:
-      'Easiest method (Linux/macOS): Run "curl -fsSL https://raw.githubusercontent.com/NoFxAiOS/nofx/main/install.sh | bash" - this installs Docker containers automatically. Then open http://127.0.0.1:3000 in your browser. For manual installation or development, clone the repository and follow the README instructions.',
+      'Easiest method (Linux/macOS): Run "curl -fsSL https://raw.githubusercontent.com/NoFxAiOS/nofx/main/install.sh | bash" - this installs Docker containers automatically. Then open http://127.0.0.1:3009 in your browser. For manual installation or development, clone the repository and follow the README instructions.',
 
     faqWindowsInstallation: 'How do I install on Windows?',
     faqWindowsInstallationAnswer:
-      'Three options: 1) Docker Desktop (Recommended) - Install Docker Desktop, then run "docker compose -f docker-compose.prod.yml up -d" in PowerShell; 2) WSL2 - Install Windows Subsystem for Linux, then follow Linux installation; 3) Docker in WSL2 - Best of both worlds, run the install script in WSL2 terminal. Access via http://127.0.0.1:3000',
+      'Three options: 1) Docker Desktop (Recommended) - Install Docker Desktop, then run "docker compose -f docker-compose.prod.yml up -d" in PowerShell; 2) WSL2 - Install Windows Subsystem for Linux, then follow Linux installation; 3) Docker in WSL2 - Best of both worlds, run the install script in WSL2 terminal. Access via http://127.0.0.1:3009',
 
     faqDockerDeployment: 'Docker deployment keeps failing',
     faqDockerDeploymentAnswer:
@@ -856,11 +856,11 @@ export const translations = {
 
     faqManualInstallation: 'How do I install manually for development?',
     faqManualInstallationAnswer:
-      'Prerequisites: Go 1.21+, Node.js 18+, TA-Lib. Steps: 1) Clone repo: "git clone https://github.com/NoFxAiOS/nofx.git"; 2) Install backend deps: "go mod download"; 3) Install frontend deps: "cd web && npm install"; 4) Build backend: "go build -o nofx"; 5) Run backend: "./nofx"; 6) Run frontend (new terminal): "cd web && npm run dev". Access at http://127.0.0.1:3000',
+      'Prerequisites: Go 1.21+, Node.js 18+, TA-Lib. Steps: 1) Clone repo: "git clone https://github.com/NoFxAiOS/nofx.git"; 2) Install backend deps: "go mod download"; 3) Install frontend deps: "cd web && npm install"; 4) Build backend: "go build -o nofx"; 5) Run backend: "./nofx"; 6) Run frontend (new terminal): "cd web && npm run dev". Access at http://127.0.0.1:3009',
 
     faqServerDeployment: 'How do I deploy to a remote server?',
     faqServerDeploymentAnswer:
-      'Run the install script on your server - it auto-detects the server IP. Access via http://YOUR_SERVER_IP:3000. For HTTPS: 1) Use Cloudflare (free) - add domain, create A record pointing to server IP, set SSL to "Flexible"; 2) Enable TRANSPORT_ENCRYPTION=true in .env for browser-side encryption; 3) Access via https://your-domain.com',
+      'Run the install script on your server - it auto-detects the server IP. Access via http://YOUR_SERVER_IP:3009. For HTTPS: 1) Use Cloudflare (free) - add domain, create A record pointing to server IP, set SSL to "Flexible"; 2) Enable TRANSPORT_ENCRYPTION=true in .env for browser-side encryption; 3) Access via https://your-domain.com',
 
     faqUpdateNOFX: 'How do I update NOFX?',
     faqUpdateNOFXAnswer:
@@ -925,7 +925,7 @@ export const translations = {
       'Approximate daily costs per trader (5-min intervals): DeepSeek: $0.10-0.50; Qwen: $0.20-0.80; OpenAI: $2-5; Claude: $1-3. Costs depend on prompt length and response tokens. DeepSeek offers the best cost/performance ratio. Longer decision intervals reduce costs.',
 
     // ===== TECHNICAL ISSUES =====
-    faqPortInUse: 'Port 8080 or 3000 already in use',
+    faqPortInUse: 'Port 8080 or 3009 already in use',
     faqPortInUseAnswer:
       'Check what\'s using the port: "lsof -i :8080" (macOS/Linux) or "netstat -ano | findstr 8080" (Windows). Kill the process or change ports in .env: NOFX_BACKEND_PORT=8081, NOFX_FRONTEND_PORT=3001. Restart with "docker compose down && docker compose up -d".',
 
@@ -1901,7 +1901,7 @@ export const translations = {
     fullControlDesc: '完全掌控 AI 提示词和资金',
     startupMessages1: '启动自动交易系统...',
     startupMessages2: 'API服务器启动在端口 8080',
-    startupMessages3: 'Web 控制台 http://127.0.0.1:3000',
+    startupMessages3: 'Web 控制台 http://127.0.0.1:3009',
 
     // How It Works Section
     howToStart: '如何开始使用 NOFX',
@@ -1998,11 +1998,11 @@ export const translations = {
     // ===== 安装部署 =====
     faqHowToInstall: '如何安装 NOFX？',
     faqHowToInstallAnswer:
-      '最简单的方法（Linux/macOS）：运行 "curl -fsSL https://raw.githubusercontent.com/NoFxAiOS/nofx/main/install.sh | bash" - 这会自动安装 Docker 容器。然后在浏览器中打开 http://127.0.0.1:3000。手动安装或开发请克隆仓库并按照 README 说明操作。',
+      '最简单的方法（Linux/macOS）：运行 "curl -fsSL https://raw.githubusercontent.com/NoFxAiOS/nofx/main/install.sh | bash" - 这会自动安装 Docker 容器。然后在浏览器中打开 http://127.0.0.1:3009。手动安装或开发请克隆仓库并按照 README 说明操作。',
 
     faqWindowsInstallation: 'Windows 如何安装？',
     faqWindowsInstallationAnswer:
-      '三种方式：1）Docker Desktop（推荐）- 安装 Docker Desktop，然后在 PowerShell 中运行 "docker compose -f docker-compose.prod.yml up -d"；2）WSL2 - 安装 Windows 子系统 Linux，然后按 Linux 方式安装；3）WSL2 + Docker - 两全其美，在 WSL2 终端运行安装脚本。通过 http://127.0.0.1:3000 访问。',
+      '三种方式：1）Docker Desktop（推荐）- 安装 Docker Desktop，然后在 PowerShell 中运行 "docker compose -f docker-compose.prod.yml up -d"；2）WSL2 - 安装 Windows 子系统 Linux，然后按 Linux 方式安装；3）WSL2 + Docker - 两全其美，在 WSL2 终端运行安装脚本。通过 http://127.0.0.1:3009 访问。',
 
     faqDockerDeployment: 'Docker 部署一直失败',
     faqDockerDeploymentAnswer:
@@ -2010,11 +2010,11 @@ export const translations = {
 
     faqManualInstallation: '如何手动安装用于开发？',
     faqManualInstallationAnswer:
-      '前置条件：Go 1.21+、Node.js 18+、TA-Lib。步骤：1）克隆仓库："git clone https://github.com/NoFxAiOS/nofx.git"；2）安装后端依赖："go mod download"；3）安装前端依赖："cd web && npm install"；4）构建后端："go build -o nofx"；5）运行后端："./nofx"；6）运行前端（新终端）："cd web && npm run dev"。访问 http://127.0.0.1:3000',
+      '前置条件：Go 1.21+、Node.js 18+、TA-Lib。步骤：1）克隆仓库："git clone https://github.com/NoFxAiOS/nofx.git"；2）安装后端依赖："go mod download"；3）安装前端依赖："cd web && npm install"；4）构建后端："go build -o nofx"；5）运行后端："./nofx"；6）运行前端（新终端）："cd web && npm run dev"。访问 http://127.0.0.1:3009',
 
     faqServerDeployment: '如何部署到远程服务器？',
     faqServerDeploymentAnswer:
-      '在服务器上运行安装脚本 - 它会自动检测服务器 IP。通过 http://服务器IP:3000 访问。配置 HTTPS：1）使用 Cloudflare（免费）- 添加域名，创建 A 记录指向服务器 IP，SSL 设为"灵活"；2）在 .env 中启用 TRANSPORT_ENCRYPTION=true 进行浏览器端加密；3）通过 https://你的域名.com 访问。',
+      '在服务器上运行安装脚本 - 它会自动检测服务器 IP。通过 http://服务器IP:3009 访问。配置 HTTPS：1）使用 Cloudflare（免费）- 添加域名，创建 A 记录指向服务器 IP，SSL 设为"灵活"；2）在 .env 中启用 TRANSPORT_ENCRYPTION=true 进行浏览器端加密；3）通过 https://你的域名.com 访问。',
 
     faqUpdateNOFX: '如何更新 NOFX？',
     faqUpdateNOFXAnswer:
@@ -2079,7 +2079,7 @@ export const translations = {
       '每个交易员每天大约费用（5 分钟间隔）：DeepSeek：$0.10-0.50；Qwen：$0.20-0.80；OpenAI：$2-5；Claude：$1-3。费用取决于提示词长度和响应 token 数。DeepSeek 性价比最高。更长的决策间隔可降低费用。',
 
     // ===== 技术问题 =====
-    faqPortInUse: '端口 8080 或 3000 被占用',
+    faqPortInUse: '端口 8080 或 3009 被占用',
     faqPortInUseAnswer:
       '查看占用端口的进程：macOS/Linux 用 "lsof -i :8080"，Windows 用 "netstat -ano | findstr 8080"。终止进程或在 .env 中修改端口：NOFX_BACKEND_PORT=8081、NOFX_FRONTEND_PORT=3001。然后 "docker compose down && docker compose up -d" 重启。',
 

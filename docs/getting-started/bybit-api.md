@@ -39,7 +39,7 @@ After creation, you'll see:
 
 Add your API credentials through the NOFX web interface:
 
-1. Open NOFX dashboard (http://localhost:3000)
+1. Open NOFX dashboard (http://localhost:3009)
 2. Go to **Exchange Configuration**
 3. Enable **Bybit**
 4. Enter your API Key and API Secret

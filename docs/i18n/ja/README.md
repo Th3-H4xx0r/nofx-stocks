@@ -101,7 +101,7 @@ chmod +x ./start.sh
 ./start.sh start --build
 ```
 
-Web インターフェースにアクセス: **http://localhost:3000**
+Web インターフェースにアクセス: **http://localhost:3009**
 
 ### 最新版への更新
 
@@ -165,7 +165,7 @@ cd web && npm run dev
 curl -fsSL https://raw.githubusercontent.com/NoFxAiOS/nofx/main/install.sh | bash
 ```
 
-`http://YOUR_SERVER_IP:3000` 経由でアクセス - すぐに動作します。
+`http://YOUR_SERVER_IP:3009` 経由でアクセス - すぐに動作します。
 
 ### セキュリティ強化 (HTTPS)
 
@@ -196,7 +196,7 @@ TRANSPORT_ENCRYPTION=true
    - 暗号化モードを **Flexible** に設定
 
    ```
-   User ──[HTTPS]──→ Cloudflare ──[HTTP]──→ Your Server:3000
+   User ──[HTTPS]──→ Cloudflare ──[HTTP]──→ Your Server:3009
    ```
 
 4. **トランスポート暗号化を有効化**

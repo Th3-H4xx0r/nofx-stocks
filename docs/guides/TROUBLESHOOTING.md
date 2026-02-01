@@ -9,7 +9,7 @@ This guide helps you diagnose and fix common issues before submitting a bug repo
 Before reporting a bug, please check:
 
 1. ✅ **Backend is running**: `docker compose ps` or `ps aux | grep nofx`
-2. ✅ **Frontend is accessible**: Open http://localhost:3000 in browser
+2. ✅ **Frontend is accessible**: Open http://localhost:3009 in browser
 3. ✅ **API is responding**: `curl http://localhost:8080/api/health`
 4. ✅ **Check logs for errors**: See [How to Capture Logs](#how-to-capture-logs) below
 
@@ -263,7 +263,7 @@ NOFX_BACKEND_PORT=8081
 
 2. **Check port configuration:**
    - Backend default: 8080
-   - Frontend default: 3000
+   - Frontend default: 3009
    - Verify `.env` settings match
 
 3. **CORS Issues:**
@@ -582,7 +582,7 @@ docker compose down -v
 docker compose up -d --build
 
 # Reconfigure through web UI
-open http://localhost:3000
+open http://localhost:3009
 ```
 
 **Partial Reset (Keep configuration, clear logs):**

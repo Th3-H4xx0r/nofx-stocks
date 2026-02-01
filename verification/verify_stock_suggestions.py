@@ -8,7 +8,7 @@ def verify_stock_suggestions():
         context = browser.new_context()
         page = context.new_page()
 
-        base_url = "http://localhost:3000"
+        base_url = "http://localhost:3009"
 
         try:
             # 1. Login

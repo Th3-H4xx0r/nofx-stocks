@@ -65,7 +65,7 @@ generate_env() {
     RSA_PRIVATE_KEY=$(openssl genrsa 2048 2>/dev/null | tr '\n' '\\' | sed 's/\\/\\n/g' | sed 's/\\n$//')
     cat > .env << EOF
 NOFX_BACKEND_PORT=8080
-NOFX_FRONTEND_PORT=3000
+NOFX_FRONTEND_PORT=3009
 TZ=Asia/Shanghai
 JWT_SECRET=${JWT_SECRET}
 DATA_ENCRYPTION_KEY=${DATA_ENCRYPTION_KEY}
@@ -89,7 +89,7 @@ print_success() {
     local IP=$(get_server_ip)
     echo ""
     echo -e "${GREEN}Installation Complete!${NC}"
-    echo -e "  Web: http://${IP}:3000"
+    echo -e "  Web: http://${IP}:3009"
     echo -e "  API: http://${IP}:8080"
     echo ""
 }

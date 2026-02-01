@@ -127,7 +127,7 @@
 curl -fsSL https://raw.githubusercontent.com/NoFxAiOS/nofx/main/install.sh | bash
 ```
 
-完成！打开浏览器访问 **http://127.0.0.1:3000**
+完成！打开浏览器访问 **http://127.0.0.1:3009**
 
 ### 一键云部署 (Railway)
 
@@ -145,7 +145,7 @@ curl -O https://raw.githubusercontent.com/NoFxAiOS/nofx/main/docker-compose.prod
 docker compose -f docker-compose.prod.yml up -d
 ```
 
-访问 Web 界面: **http://127.0.0.1:3000**
+访问 Web 界面: **http://127.0.0.1:3009**
 
 ```bash
 # 管理命令
@@ -206,7 +206,7 @@ cd web
 npm run dev
 ```
 
-访问 Web 界面: **http://127.0.0.1:3000**
+访问 Web 界面: **http://127.0.0.1:3009**
 
 ---
 
@@ -226,7 +226,7 @@ npm run dev
    docker compose -f docker-compose.prod.yml up -d
    ```
 
-3. **访问**：在浏览器打开 **http://127.0.0.1:3000**
+3. **访问**：在浏览器打开 **http://127.0.0.1:3009**
 
 ### 方法二：WSL2（适合开发）
 
@@ -276,7 +276,7 @@ npm run dev
    cd web && npm install && npm run dev
    ```
 
-5. **访问**：在 Windows 浏览器打开 **http://127.0.0.1:3000**
+5. **访问**：在 Windows 浏览器打开 **http://127.0.0.1:3009**
 
 ### 方法三：WSL2 + Docker（两全其美）
 
@@ -302,7 +302,7 @@ npm run dev
 curl -fsSL https://raw.githubusercontent.com/NoFxAiOS/nofx/main/install.sh | bash
 ```
 
-通过 `http://你的服务器IP:3000` 访问 - 立即可用。
+通过 `http://你的服务器IP:3009` 访问 - 立即可用。
 
 ### 增强安全 (HTTPS)
 
@@ -333,7 +333,7 @@ TRANSPORT_ENCRYPTION=true
    - 加密模式选择 **灵活**
 
    ```
-   用户 ──[HTTPS]──→ Cloudflare ──[HTTP]──→ 你的服务器:3000
+   用户 ──[HTTPS]──→ Cloudflare ──[HTTP]──→ 你的服务器:3009
    ```
 
 4. **启用传输加密**
