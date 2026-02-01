@@ -63,6 +63,7 @@ type ViewTab = 'overview' | 'chart' | 'trades' | 'decisions' | 'compare'
 
 const TIMEFRAME_OPTIONS = ['1m', '3m', '5m', '15m', '30m', '1h', '4h', '1d']
 const POPULAR_SYMBOLS = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'XRPUSDT', 'DOGEUSDT']
+const POPULAR_STOCKS = ['AAPL', 'TSLA', 'NVDA', 'MSFT', 'AMZN', 'GOOGL', 'AMD', 'META']
 
 // ============ Helper Functions ============
 const toLocalInput = (date: Date) => {
@@ -761,6 +762,7 @@ export function BacktestPage() {
   // Form state
   const [formState, setFormState] = useState({
     runId: '',
+    assetClass: 'crypto' as 'crypto' | 'stock',
     symbols: 'BTCUSDT,ETHUSDT,SOLUSDT',
     timeframes: ['3m', '15m', '4h'],
     decisionTf: '3m',
@@ -930,6 +932,7 @@ export function BacktestPage() {
       const payload = await api.startBacktest({
         run_id: formState.runId.trim() || undefined,
         strategy_id: formState.strategyId || undefined, // Use saved strategy from Strategy Studio
+        asset_class: formState.assetClass,
         symbols: symbolsToSend,
         timeframes: formState.timeframes,
         decision_timeframe: formState.decisionTf,
@@ -1200,46 +1203,72 @@ export function BacktestPage() {
                         )}
                       </div>
 
-                      {/* Strategy Selection (Optional) */}
-                      <div>
-                        <label className="block text-xs mb-2" style={{ color: '#848E9C' }}>
-                          {language === 'zh' ? '策略配置（可选）' : 'Strategy (Optional)'}
-                        </label>
-                        <select
-                          className="w-full p-3 rounded-lg text-sm"
-                          style={{ background: '#0B0E11', border: '1px solid #2B3139', color: '#EAECEF' }}
-                          value={formState.strategyId}
-                          onChange={(e) => handleFormChange('strategyId', e.target.value)}
-                        >
-                          <option value="">{language === 'zh' ? '不使用保存的策略' : 'No saved strategy'}</option>
-                          {strategies?.map((s) => (
-                            <option key={s.id} value={s.id}>
-                              {s.name} {s.is_active && '✓'} {s.is_default && '⭐'}
-                            </option>
-                          ))}
-                        </select>
-                        {formState.strategyId && coinSourceDescription && (
-                          <div className="mt-2 p-2 rounded" style={{ background: 'rgba(240,185,11,0.1)', border: '1px solid rgba(240,185,11,0.2)' }}>
-                            <div className="flex items-center gap-2 text-xs">
-                              <span style={{ color: '#F0B90B' }}>
-                                {language === 'zh' ? '币种来源:' : 'Coin Source:'}
-                              </span>
-                              <span className="font-medium" style={{ color: '#EAECEF' }}>
-                                {coinSourceDescription.type}
-                                {coinSourceDescription.limit && ` (${coinSourceDescription.limit})`}
-                                {coinSourceDescription.desc && ` - ${coinSourceDescription.desc}`}
-                              </span>
-                            </div>
-                            {strategyHasDynamicCoins && (
-                              <div className="text-xs mt-1" style={{ color: '#F0B90B' }}>
-                                {language === 'zh'
-                                  ? '⚡ 清空下方币种输入框即可使用策略的动态币种'
-                                  : '⚡ Clear the symbols field below to use strategy\'s dynamic coins'}
-                              </div>
-                            )}
-                          </div>
-                        )}
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs mb-2" style={{ color: '#848E9C' }}>
+                            {language === 'zh' ? '资产类别' : 'Asset Class'}
+                          </label>
+                          <select
+                            className="w-full p-3 rounded-lg text-sm"
+                            style={{ background: '#0B0E11', border: '1px solid #2B3139', color: '#EAECEF' }}
+                            value={formState.assetClass}
+                            onChange={(e) => {
+                              const ac = e.target.value as 'crypto' | 'stock'
+                              handleFormChange('assetClass', ac)
+                              // Reset symbols if switching asset class
+                              if (ac === 'stock') {
+                                handleFormChange('symbols', 'AAPL,TSLA,NVDA,MSFT,AMZN')
+                              } else {
+                                handleFormChange('symbols', 'BTCUSDT,ETHUSDT,SOLUSDT')
+                              }
+                            }}
+                          >
+                            <option value="crypto">{language === 'zh' ? '加密货币 (Crypto)' : 'Crypto'}</option>
+                            <option value="stock">{language === 'zh' ? '美股 (US Stocks)' : 'US Stocks'}</option>
+                          </select>
+                        </div>
+
+                        {/* Strategy Selection (Optional) */}
+                        <div>
+                          <label className="block text-xs mb-2" style={{ color: '#848E9C' }}>
+                            {language === 'zh' ? '策略配置（可选）' : 'Strategy (Optional)'}
+                          </label>
+                          <select
+                            className="w-full p-3 rounded-lg text-sm"
+                            style={{ background: '#0B0E11', border: '1px solid #2B3139', color: '#EAECEF' }}
+                            value={formState.strategyId}
+                            onChange={(e) => handleFormChange('strategyId', e.target.value)}
+                          >
+                            <option value="">{language === 'zh' ? '不使用保存的策略' : 'No saved strategy'}</option>
+                            {strategies?.map((s) => (
+                              <option key={s.id} value={s.id}>
+                                {s.name} {s.is_active && '✓'} {s.is_default && '⭐'}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
                       </div>
+                      {formState.strategyId && coinSourceDescription && (
+                        <div className="mt-2 p-2 rounded" style={{ background: 'rgba(240,185,11,0.1)', border: '1px solid rgba(240,185,11,0.2)' }}>
+                          <div className="flex items-center gap-2 text-xs">
+                            <span style={{ color: '#F0B90B' }}>
+                              {language === 'zh' ? '币种来源:' : 'Coin Source:'}
+                            </span>
+                            <span className="font-medium" style={{ color: '#EAECEF' }}>
+                              {coinSourceDescription.type}
+                              {coinSourceDescription.limit && ` (${coinSourceDescription.limit})`}
+                              {coinSourceDescription.desc && ` - ${coinSourceDescription.desc}`}
+                            </span>
+                          </div>
+                          {strategyHasDynamicCoins && (
+                            <div className="text-xs mt-1" style={{ color: '#F0B90B' }}>
+                              {language === 'zh'
+                                ? '⚡ 清空下方币种输入框即可使用策略的动态币种'
+                                : '⚡ Clear the symbols field below to use strategy\'s dynamic coins'}
+                            </div>
+                          )}
+                        </div>
+                      )}
 
                       <div>
                         <label className="block text-xs mb-2" style={{ color: '#848E9C' }}>
@@ -1252,7 +1281,7 @@ export function BacktestPage() {
                         </label>
                         {!strategyHasDynamicCoins && (
                           <div className="flex flex-wrap gap-1 mb-2">
-                            {POPULAR_SYMBOLS.map((sym) => {
+                            {(formState.assetClass === 'stock' ? POPULAR_STOCKS : POPULAR_SYMBOLS).map((sym) => {
                               const isSelected = formState.symbols.includes(sym)
                               return (
                                 <button

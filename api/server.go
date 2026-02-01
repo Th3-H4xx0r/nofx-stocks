@@ -20,6 +20,7 @@ import (
 	"nofx/provider/twelvedata"
 	"nofx/store"
 	"nofx/trader"
+	alpacatrader "nofx/trader/alpaca"
 	"nofx/trader/aster"
 	"nofx/trader/binance"
 	"nofx/trader/bitget"
@@ -647,6 +648,12 @@ func (s *Server) handleCreateTrader(c *gin.Context) {
 			} else {
 				createErr = fmt.Errorf("Lighter requires wallet address and API Key private key")
 			}
+		case "alpaca":
+			tempTrader = alpacatrader.NewAlpacaTrader(
+				string(exchangeCfg.AlpacaAPIKey),
+				string(exchangeCfg.AlpacaSecretKey),
+				exchangeCfg.AlpacaPaper,
+			)
 		default:
 			logger.Infof("⚠️ Unsupported exchange type: %s, using user input for initial balance", exchangeCfg.ExchangeType)
 		}
@@ -1210,6 +1217,12 @@ func (s *Server) handleSyncBalance(c *gin.Context) {
 		} else {
 			createErr = fmt.Errorf("Lighter requires wallet address and API Key private key")
 		}
+	case "alpaca":
+		tempTrader = alpacatrader.NewAlpacaTrader(
+			string(exchangeCfg.AlpacaAPIKey),
+			string(exchangeCfg.AlpacaSecretKey),
+			exchangeCfg.AlpacaPaper,
+		)
 	default:
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Unsupported exchange type"})
 		return
@@ -1367,6 +1380,12 @@ func (s *Server) handleClosePosition(c *gin.Context) {
 		} else {
 			createErr = fmt.Errorf("Lighter requires wallet address and API Key private key")
 		}
+	case "alpaca":
+		tempTrader = alpacatrader.NewAlpacaTrader(
+			string(exchangeCfg.AlpacaAPIKey),
+			string(exchangeCfg.AlpacaSecretKey),
+			exchangeCfg.AlpacaPaper,
+		)
 	default:
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Unsupported exchange type"})
 		return

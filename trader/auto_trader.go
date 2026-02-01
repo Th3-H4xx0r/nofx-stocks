@@ -10,6 +10,7 @@ import (
 	"nofx/market"
 	"nofx/mcp"
 	"nofx/store"
+	"nofx/trader/alpaca"
 	"nofx/trader/aster"
 	"nofx/trader/binance"
 	"nofx/trader/bitget"
@@ -72,6 +73,11 @@ type AutoTraderConfig struct {
 	LighterAPIKeyPrivateKey string // LIGHTER API Key private key (40 bytes, for transaction signing)
 	LighterAPIKeyIndex      int    // LIGHTER API Key index (0-255)
 	LighterTestnet          bool   // Whether to use testnet
+
+	// Alpaca configuration
+	AlpacaAPIKey    string
+	AlpacaSecretKey string
+	AlpacaPaper     bool
 
 	// AI configuration
 	UseQwen     bool
@@ -279,6 +285,9 @@ func NewAutoTrader(config AutoTraderConfig, st *store.Store, userID string) (*Au
 			return nil, fmt.Errorf("failed to initialize LIGHTER trader: %w", err)
 		}
 		logger.Infof("✓ LIGHTER trader initialized successfully")
+	case "alpaca":
+		logger.Infof("🏦 [%s] Using Alpaca trading", config.Name)
+		trader = alpaca.NewAlpacaTrader(config.AlpacaAPIKey, config.AlpacaSecretKey, config.AlpacaPaper)
 	default:
 		return nil, fmt.Errorf("unsupported trading platform: %s", config.Exchange)
 	}
