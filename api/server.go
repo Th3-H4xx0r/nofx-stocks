@@ -1996,6 +1996,7 @@ func (s *Server) handleCreateExchange(c *gin.Context) {
 	validTypes := map[string]bool{
 		"binance": true, "bybit": true, "okx": true, "bitget": true,
 		"hyperliquid": true, "aster": true, "lighter": true, "gate": true,
+		"alpaca": true,
 	}
 	if !validTypes[req.ExchangeType] {
 		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Invalid exchange type: %s", req.ExchangeType)})
