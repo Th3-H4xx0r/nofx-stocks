@@ -63,14 +63,12 @@ export function StockDashboardPage({
     decisions,
     decisionsLimit,
     onDecisionsLimitChange,
-    lastUpdate,
     language,
     traders,
     tradersError,
     selectedTraderId,
     onTraderSelect,
     onNavigateToTraders,
-    exchanges,
 }: StockDashboardPageProps) {
     const [closingPosition, setClosingPosition] = useState<string | null>(null)
     const [selectedChartSymbol, setSelectedChartSymbol] = useState<string | undefined>(undefined)
@@ -78,7 +76,7 @@ export function StockDashboardPage({
     const chartSectionRef = useRef<HTMLDivElement>(null)
 
     // Current positions pagination
-    const [positionsPageSize, setPositionsPageSize] = useState<number>(20)
+    const [positionsPageSize] = useState<number>(20)
     const [positionsCurrentPage, setPositionsCurrentPage] = useState<number>(1)
 
     // Calculate paginated positions
