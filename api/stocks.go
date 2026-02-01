@@ -87,7 +87,7 @@ func (s *Server) handleGetStockSuggestions(c *gin.Context) {
 			change24h := (price - prev.Close) / prev.Close * 100
 
 			// Calculate indicators
-			rsi := market.ExportCalculateRSI(klines, 14)
+			rsi := market.CalculateRSI(klines, 14)
 
 			// Fetch News (skipped for now)
 			newsScore := 0.0

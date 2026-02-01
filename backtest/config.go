@@ -85,6 +85,10 @@ func (cfg *BacktestConfig) Validate() error {
 	if cfg.AssetClass == "" {
 		cfg.AssetClass = "crypto"
 	}
+	// Normalize "stocks" (plural) to "stock" (singular)
+	if cfg.AssetClass == "stocks" {
+		cfg.AssetClass = "stock"
+	}
 
 	if len(cfg.Symbols) == 0 {
 		return fmt.Errorf("at least one symbol is required")
@@ -171,8 +175,8 @@ func (cfg *BacktestConfig) Validate() error {
 		cfg.Leverage.AltcoinLeverage = 5
 	}
 
-	// Validate Alpaca keys if AssetClass is stocks
-	if cfg.AssetClass == "stocks" {
+	// Validate Alpaca keys if AssetClass is stock
+	if cfg.AssetClass == "stock" {
 		// We don't strictly require them here because they might be injected later by Manager
 		// But ideally they should be present before running DataFeed
 	}
@@ -291,8 +295,8 @@ func (cfg *BacktestConfig) ToStrategyConfig() *store.StrategyConfig {
 			EnableRSI:         true,
 			EnableATR:         true,
 			EnableVolume:      true,
-			EnableOI:          cfg.AssetClass != "stocks",
-			EnableFundingRate: cfg.AssetClass != "stocks",
+			EnableOI:          cfg.AssetClass != "stock",
+			EnableFundingRate: cfg.AssetClass != "stock",
 			EMAPeriods:        []int{20, 50},
 			RSIPeriods:        []int{7, 14},
 			ATRPeriods:        []int{14},

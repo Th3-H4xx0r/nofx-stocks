@@ -234,15 +234,15 @@ func TestCalculateATR(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			atr := calculateATR(tt.klines, tt.period)
+			atr := CalculateATR(tt.klines, tt.period)
 
 			if tt.expectZero {
 				if atr != 0 {
-					t.Errorf("calculateATR() = %.3f, expected 0 (insufficient data)", atr)
+					t.Errorf("CalculateATR() = %.3f, expected 0 (insufficient data)", atr)
 				}
 			} else {
 				if atr <= 0 {
-					t.Errorf("calculateATR() = %.3f, expected > 0", atr)
+					t.Errorf("CalculateATR() = %.3f, expected > 0", atr)
 				}
 			}
 		})
@@ -260,7 +260,7 @@ func TestCalculateATR_TrueRange(t *testing.T) {
 		{High: 54.0, Low: 52.0, Close: 53.0}, // TR = 2.0
 	}
 
-	atr := calculateATR(klines, 3)
+	atr := CalculateATR(klines, 3)
 
 	// Expected calculation:
 	// TR[1] = max(51-49, |51-49|, |49-49|) = 2.0
@@ -274,7 +274,7 @@ func TestCalculateATR_TrueRange(t *testing.T) {
 	tolerance := 0.01 // Allow small floating point error
 
 	if math.Abs(atr-expectedATR) > tolerance {
-		t.Errorf("calculateATR() = %.3f, want approximately %.3f", atr, expectedATR)
+		t.Errorf("CalculateATR() = %.3f, want approximately %.3f", atr, expectedATR)
 	}
 }
 
@@ -511,7 +511,7 @@ func TestCalculateDonchian(t *testing.T) {
 		{High: 103, Low: 91},
 	}
 
-	upper, lower := ExportCalculateDonchian(klines, 5)
+	upper, lower := CalculateDonchian(klines, 5)
 
 	if upper != 108 {
 		t.Errorf("Expected upper = 108, got %v", upper)
@@ -527,7 +527,7 @@ func TestCalculateDonchian_PartialPeriod(t *testing.T) {
 		{High: 105, Low: 88},
 	}
 
-	upper, lower := ExportCalculateDonchian(klines, 10)
+	upper, lower := CalculateDonchian(klines, 10)
 
 	// Should use all available klines when period > len(klines)
 	if upper != 105 {
@@ -544,13 +544,13 @@ func TestCalculateDonchian_InvalidPeriod(t *testing.T) {
 	}
 
 	// Zero period should return (0, 0)
-	upper, lower := ExportCalculateDonchian(klines, 0)
+	upper, lower := CalculateDonchian(klines, 0)
 	if upper != 0 || lower != 0 {
 		t.Errorf("Expected (0, 0) for zero period, got (%v, %v)", upper, lower)
 	}
 
 	// Negative period should return (0, 0)
-	upper, lower = ExportCalculateDonchian(klines, -1)
+	upper, lower = CalculateDonchian(klines, -1)
 	if upper != 0 || lower != 0 {
 		t.Errorf("Expected (0, 0) for negative period, got (%v, %v)", upper, lower)
 	}
@@ -568,7 +568,7 @@ func TestCalculateBoxData(t *testing.T) {
 		}
 	}
 
-	box := ExportCalculateBoxData(klines, 100.0)
+	box := CalculateBoxData(klines, 100.0)
 
 	if box.ShortUpper == 0 || box.ShortLower == 0 {
 		t.Error("Short box should not be zero")

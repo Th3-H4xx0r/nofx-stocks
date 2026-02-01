@@ -227,11 +227,11 @@ func GetWithExchange(symbol, exchange string) (*Data, error) {
 
 	// Calculate current indicators (based on 3-minute latest data)
 	currentPrice := klines3m[len(klines3m)-1].Close
-	currentEMA20 := calculateEMA(klines3m, 20)
-	currentMACD := calculateMACD(klines3m)
-	currentRSI7 := calculateRSI(klines3m, 7)
-	currentVWAP := calculateVWAP(klines3m)
-	currentLRSI := calculateLRSI(klines3m, 0.5)
+	currentEMA20 := CalculateEMA(klines3m, 20)
+	currentMACD := CalculateMACD(klines3m)
+	currentRSI7 := CalculateRSI(klines3m, 7)
+	currentVWAP := CalculateVWAP(klines3m)
+	currentLRSI := CalculateLRSI(klines3m, 0.5)
 
 	// Calculate price change percentage
 	// 1-hour price change = price from 20 3-minute K-lines ago
@@ -393,11 +393,11 @@ func GetWithTimeframesAndConfig(symbol string, timeframes []string, primaryTimef
 
 	// Calculate current indicators (based on primary timeframe latest data)
 	currentPrice := primaryKlines[len(primaryKlines)-1].Close
-	currentEMA20 := calculateEMA(primaryKlines, 20)
-	currentMACD := calculateMACD(primaryKlines)
-	currentRSI7 := calculateRSI(primaryKlines, 7)
-	currentVWAP := calculateVWAP(primaryKlines)
-	currentLRSI := calculateLRSI(primaryKlines, 0.5)
+	currentEMA20 := CalculateEMA(primaryKlines, 20)
+	currentMACD := CalculateMACD(primaryKlines)
+	currentRSI7 := CalculateRSI(primaryKlines, 7)
+	currentVWAP := CalculateVWAP(primaryKlines)
+	currentLRSI := CalculateLRSI(primaryKlines, 0.5)
 
 	// Calculate price changes
 	priceChange1h := calculatePriceChangeByBars(primaryKlines, primaryTimeframe, 60) // 1 hour
@@ -482,51 +482,51 @@ func calculateTimeframeSeries(klines []Kline, timeframe string, count int) *Time
 
 		// Calculate EMA20 for each point
 		if i >= 19 {
-			ema20 := calculateEMA(klines[:i+1], 20)
+			ema20 := CalculateEMA(klines[:i+1], 20)
 			data.EMA20Values = append(data.EMA20Values, ema20)
 		}
 
 		// Calculate EMA50 for each point
 		if i >= 49 {
-			ema50 := calculateEMA(klines[:i+1], 50)
+			ema50 := CalculateEMA(klines[:i+1], 50)
 			data.EMA50Values = append(data.EMA50Values, ema50)
 		}
 
 		// Calculate MACD for each point
 		if i >= 25 {
-			macd := calculateMACD(klines[:i+1])
+			macd := CalculateMACD(klines[:i+1])
 			data.MACDValues = append(data.MACDValues, macd)
 		}
 
 		// Calculate RSI for each point
 		if i >= 7 {
-			rsi7 := calculateRSI(klines[:i+1], 7)
+			rsi7 := CalculateRSI(klines[:i+1], 7)
 			data.RSI7Values = append(data.RSI7Values, rsi7)
 		}
 		if i >= 14 {
-			rsi14 := calculateRSI(klines[:i+1], 14)
+			rsi14 := CalculateRSI(klines[:i+1], 14)
 			data.RSI14Values = append(data.RSI14Values, rsi14)
 		}
 
 		// Calculate Bollinger Bands (period 20, std dev multiplier 2)
 		if i >= 19 {
-			upper, middle, lower := calculateBOLL(klines[:i+1], 20, 2.0)
+			upper, middle, lower := CalculateBOLL(klines[:i+1], 20, 2.0)
 			data.BOLLUpper = append(data.BOLLUpper, upper)
 			data.BOLLMiddle = append(data.BOLLMiddle, middle)
 			data.BOLLLower = append(data.BOLLLower, lower)
 		}
 
 		// Calculate VWAP (Accumulated from start of loaded klines)
-		vwap := calculateVWAP(klines[:i+1])
+		vwap := CalculateVWAP(klines[:i+1])
 		data.VWAPValues = append(data.VWAPValues, vwap)
 
 		// Calculate LRSI (Laguerre RSI) - Gamma 0.5
-		lrsi := calculateLRSI(klines[:i+1], 0.5)
+		lrsi := CalculateLRSI(klines[:i+1], 0.5)
 		data.LRSIValues = append(data.LRSIValues, lrsi)
 	}
 
 	// Calculate ATR14
-	data.ATR14 = calculateATR(klines, 14)
+	data.ATR14 = CalculateATR(klines, 14)
 
 	return data
 }
@@ -598,8 +598,8 @@ func parseTimeframeToMinutes(tf string) int {
 	}
 }
 
-// calculateEMA calculates EMA
-func calculateEMA(klines []Kline, period int) float64 {
+// CalculateEMA calculates EMA
+func CalculateEMA(klines []Kline, period int) float64 {
 	if len(klines) < period {
 		return 0
 	}
@@ -620,22 +620,22 @@ func calculateEMA(klines []Kline, period int) float64 {
 	return ema
 }
 
-// calculateMACD calculates MACD
-func calculateMACD(klines []Kline) float64 {
+// CalculateMACD calculates MACD
+func CalculateMACD(klines []Kline) float64 {
 	if len(klines) < 26 {
 		return 0
 	}
 
 	// Calculate 12-period and 26-period EMA
-	ema12 := calculateEMA(klines, 12)
-	ema26 := calculateEMA(klines, 26)
+	ema12 := CalculateEMA(klines, 12)
+	ema26 := CalculateEMA(klines, 26)
 
 	// MACD = EMA12 - EMA26
 	return ema12 - ema26
 }
 
-// calculateRSI calculates RSI
-func calculateRSI(klines []Kline, period int) float64 {
+// CalculateRSI calculates RSI
+func CalculateRSI(klines []Kline, period int) float64 {
 	if len(klines) <= period {
 		return 0
 	}
@@ -678,8 +678,8 @@ func calculateRSI(klines []Kline, period int) float64 {
 	return rsi
 }
 
-// calculateATR calculates ATR
-func calculateATR(klines []Kline, period int) float64 {
+// CalculateATR calculates ATR
+func CalculateATR(klines []Kline, period int) float64 {
 	if len(klines) <= period {
 		return 0
 	}
@@ -712,9 +712,9 @@ func calculateATR(klines []Kline, period int) float64 {
 	return atr
 }
 
-// calculateBOLL calculates Bollinger Bands (upper, middle, lower)
+// CalculateBOLL calculates Bollinger Bands (upper, middle, lower)
 // period: typically 20, multiplier: typically 2
-func calculateBOLL(klines []Kline, period int, multiplier float64) (upper, middle, lower float64) {
+func CalculateBOLL(klines []Kline, period int, multiplier float64) (upper, middle, lower float64) {
 	if len(klines) < period {
 		return 0, 0, 0
 	}
@@ -742,9 +742,9 @@ func calculateBOLL(klines []Kline, period int, multiplier float64) (upper, middl
 	return upper, middle, lower
 }
 
-// calculateVWAP calculates Volume Weighted Average Price
+// CalculateVWAP calculates Volume Weighted Average Price
 // VWAP = Sum(Price * Volume) / Sum(Volume)
-func calculateVWAP(klines []Kline) float64 {
+func CalculateVWAP(klines []Kline) float64 {
 	if len(klines) == 0 {
 		return 0
 	}
@@ -766,9 +766,9 @@ func calculateVWAP(klines []Kline) float64 {
 	return sumPV / sumVolume
 }
 
-// calculateLRSI calculates Laguerre RSI
+// CalculateLRSI calculates Laguerre RSI
 // gamma: damping factor (0.0 - 1.0), typical values 0.5 - 0.8
-func calculateLRSI(klines []Kline, gamma float64) float64 {
+func CalculateLRSI(klines []Kline, gamma float64) float64 {
 	if len(klines) < 4 {
 		return 0
 	}
@@ -850,37 +850,37 @@ func calculateIntradaySeries(klines []Kline) *IntradayData {
 
 		// Calculate EMA20 for each point
 		if i >= 19 {
-			ema20 := calculateEMA(klines[:i+1], 20)
+			ema20 := CalculateEMA(klines[:i+1], 20)
 			data.EMA20Values = append(data.EMA20Values, ema20)
 		}
 
 		// Calculate MACD for each point
 		if i >= 25 {
-			macd := calculateMACD(klines[:i+1])
+			macd := CalculateMACD(klines[:i+1])
 			data.MACDValues = append(data.MACDValues, macd)
 		}
 
 		// Calculate RSI for each point
 		if i >= 7 {
-			rsi7 := calculateRSI(klines[:i+1], 7)
+			rsi7 := CalculateRSI(klines[:i+1], 7)
 			data.RSI7Values = append(data.RSI7Values, rsi7)
 		}
 		if i >= 14 {
-			rsi14 := calculateRSI(klines[:i+1], 14)
+			rsi14 := CalculateRSI(klines[:i+1], 14)
 			data.RSI14Values = append(data.RSI14Values, rsi14)
 		}
 
 		// Calculate VWAP
-		vwap := calculateVWAP(klines[:i+1])
+		vwap := CalculateVWAP(klines[:i+1])
 		data.VWAPValues = append(data.VWAPValues, vwap)
 
 		// Calculate LRSI
-		lrsi := calculateLRSI(klines[:i+1], 0.5)
+		lrsi := CalculateLRSI(klines[:i+1], 0.5)
 		data.LRSIValues = append(data.LRSIValues, lrsi)
 	}
 
 	// Calculate 3m ATR14
-	data.ATR14 = calculateATR(klines, 14)
+	data.ATR14 = CalculateATR(klines, 14)
 
 	return data
 }
@@ -895,12 +895,12 @@ func calculateLongerTermData(klines []Kline) *LongerTermData {
 	}
 
 	// Calculate EMA
-	data.EMA20 = calculateEMA(klines, 20)
-	data.EMA50 = calculateEMA(klines, 50)
+	data.EMA20 = CalculateEMA(klines, 20)
+	data.EMA50 = CalculateEMA(klines, 50)
 
 	// Calculate ATR
-	data.ATR3 = calculateATR(klines, 3)
-	data.ATR14 = calculateATR(klines, 14)
+	data.ATR3 = CalculateATR(klines, 3)
+	data.ATR14 = CalculateATR(klines, 14)
 
 	// Calculate volume
 	if len(klines) > 0 {
@@ -921,18 +921,18 @@ func calculateLongerTermData(klines []Kline) *LongerTermData {
 
 	for i := start; i < len(klines); i++ {
 		if i >= 25 {
-			macd := calculateMACD(klines[:i+1])
+			macd := CalculateMACD(klines[:i+1])
 			data.MACDValues = append(data.MACDValues, macd)
 		}
 		if i >= 14 {
-			rsi14 := calculateRSI(klines[:i+1], 14)
+			rsi14 := CalculateRSI(klines[:i+1], 14)
 			data.RSI14Values = append(data.RSI14Values, rsi14)
 		}
 
-		vwap := calculateVWAP(klines[:i+1])
+		vwap := CalculateVWAP(klines[:i+1])
 		data.VWAPValues = append(data.VWAPValues, vwap)
 
-		lrsi := calculateLRSI(klines[:i+1], 0.5)
+		lrsi := CalculateLRSI(klines[:i+1], 0.5)
 		data.LRSIValues = append(data.LRSIValues, lrsi)
 	}
 
@@ -1319,9 +1319,9 @@ func BuildDataFromKlines(symbol string, primary []Kline, longer []Kline) (*Data,
 	data := &Data{
 		Symbol:            symbol,
 		CurrentPrice:      currentPrice,
-		CurrentEMA20:      calculateEMA(primary, 20),
-		CurrentMACD:       calculateMACD(primary),
-		CurrentRSI7:       calculateRSI(primary, 7),
+		CurrentEMA20:      CalculateEMA(primary, 20),
+		CurrentMACD:       CalculateMACD(primary),
+		CurrentRSI7:       CalculateRSI(primary, 7),
 		PriceChange1h:     priceChangeFromSeries(primary, time.Hour),
 		PriceChange4h:     priceChangeFromSeries(primary, 4*time.Hour),
 		OpenInterest:      &OIData{Latest: 0, Average: 0},
@@ -1337,16 +1337,7 @@ func BuildDataFromKlines(symbol string, primary []Kline, longer []Kline) (*Data,
 	return data, nil
 }
 
-// ExportCalculateBoxData exports calculateBoxData for testing
-func ExportCalculateBoxData(klines []Kline, currentPrice float64) *BoxData {
-	return calculateBoxData(klines, currentPrice)
-}
-
-// ExportCalculateRSI exports calculateRSI for testing/usage outside package
-func ExportCalculateRSI(klines []Kline, period int) float64 {
-	return calculateRSI(klines, period)
-}
-
+// CalculateBoxData exports CalculateBoxData for testing
 // GetBoxData fetches 1h klines and calculates box data for a symbol
 func GetBoxData(symbol string) (*BoxData, error) {
 	symbol = Normalize(symbol)
@@ -1371,7 +1362,7 @@ func GetBoxData(symbol string) (*BoxData, error) {
 
 	currentPrice := klines[len(klines)-1].Close
 
-	return calculateBoxData(klines, currentPrice), nil
+	return CalculateBoxData(klines, currentPrice), nil
 }
 
 const LongBoxPeriod = 500
@@ -1381,22 +1372,34 @@ func isStaleData(klines []Kline, symbol string) bool {
 	if len(klines) < 5 {
 		return false
 	}
-	// Check if last 3 candles have exactly same close price
+
+	// Check if last 5 candles have exactly same close price
 	last := klines[len(klines)-1].Close
-	for i := len(klines) - 2; i >= len(klines)-3; i-- {
+	isFlat := true
+	hasVolume := false
+
+	// Check last 5 candles
+	for i := len(klines) - 1; i >= len(klines)-5; i-- {
 		if klines[i].Close != last {
-			return false
+			isFlat = false
+			break
+		}
+		if klines[i].Volume > 0 {
+			hasVolume = true
 		}
 	}
-	// If we are here, last 3 candles are identical.
-	// But for stablecoins or low volatility, this might happen.
-	// We should check if volume is also 0?
-	// For now, let's just assume it's stale if 5 identical closes.
-	for i := len(klines) - 4; i >= len(klines)-5; i-- {
-		if klines[i].Close != last {
-			return false
-		}
+
+	// If prices are not flat, it's valid
+	if !isFlat {
+		return false
 	}
+
+	// If prices are flat but there is volume, it's just low volatility (valid)
+	if hasVolume {
+		return false
+	}
+
+	// Flat price AND zero volume = Stale data
 	return true
 }
 
@@ -1430,8 +1433,33 @@ func priceChangeFromSeries(klines []Kline, duration time.Duration) float64 {
 	return 0
 }
 
-// calculateBoxData calculates Darvas Box like structure
-func calculateBoxData(klines []Kline, currentPrice float64) *BoxData {
+// CalculateDonchian calculates Donchian channel (highest high, lowest low) for given period
+func CalculateDonchian(klines []Kline, period int) (upper, lower float64) {
+	if len(klines) == 0 || period <= 0 {
+		return 0, 0
+	}
+
+	if len(klines) < period {
+		// If not enough data, use all available
+		period = len(klines)
+	}
+
+	high := -math.MaxFloat64
+	low := math.MaxFloat64
+
+	for i := len(klines) - period; i < len(klines); i++ {
+		if klines[i].High > high {
+			high = klines[i].High
+		}
+		if klines[i].Low < low {
+			low = klines[i].Low
+		}
+	}
+	return high, low
+}
+
+// CalculateBoxData calculates Darvas Box like structure
+func CalculateBoxData(klines []Kline, currentPrice float64) *BoxData {
 	if len(klines) == 0 {
 		return nil
 	}
@@ -1441,29 +1469,9 @@ func calculateBoxData(klines []Kline, currentPrice float64) *BoxData {
 	midPeriod := 240
 	longPeriod := 500
 
-	calculateBounds := func(period int) (float64, float64) {
-		if len(klines) < period {
-			// If not enough data, use all available
-			period = len(klines)
-		}
-
-		high := -math.MaxFloat64
-		low := math.MaxFloat64
-
-		for i := len(klines) - period; i < len(klines); i++ {
-			if klines[i].High > high {
-				high = klines[i].High
-			}
-			if klines[i].Low < low {
-				low = klines[i].Low
-			}
-		}
-		return high, low
-	}
-
-	shortUpper, shortLower := calculateBounds(shortPeriod)
-	midUpper, midLower := calculateBounds(midPeriod)
-	longUpper, longLower := calculateBounds(longPeriod)
+	shortUpper, shortLower := CalculateDonchian(klines, shortPeriod)
+	midUpper, midLower := CalculateDonchian(klines, midPeriod)
+	longUpper, longLower := CalculateDonchian(klines, longPeriod)
 
 	return &BoxData{
 		ShortUpper:   shortUpper,

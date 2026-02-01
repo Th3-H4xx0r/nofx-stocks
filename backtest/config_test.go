@@ -25,13 +25,13 @@ func TestBacktestConfig_AssetClass_Validation(t *testing.T) {
 	cfgStocks := &BacktestConfig{
 		RunID: "test_run_stocks",
 		Symbols: []string{"aapl"},
-		AssetClass: "stocks",
+		AssetClass: "stock",
 		StartTS: now - 3600,
 		EndTS: now,
 	}
 	err = cfgStocks.Validate()
 	assert.NoError(t, err)
-	assert.Equal(t, "stocks", cfgStocks.AssetClass)
+	assert.Equal(t, "stock", cfgStocks.AssetClass)
 	assert.Equal(t, "AAPL", cfgStocks.Symbols[0]) // Uppercased, no USDT
 }
 
@@ -40,7 +40,7 @@ func TestBacktestConfig_ToStrategyConfig_Stocks(t *testing.T) {
 	cfg := &BacktestConfig{
 		RunID: "test_run",
 		Symbols: []string{"AAPL"},
-		AssetClass: "stocks",
+		AssetClass: "stock",
 		Timeframes: []string{"5m"},
 		StartTS: now - 3600,
 		EndTS: now,
@@ -49,7 +49,7 @@ func TestBacktestConfig_ToStrategyConfig_Stocks(t *testing.T) {
 	cfg.Validate()
 
 	stratCfg := cfg.ToStrategyConfig()
-	assert.Equal(t, "stocks", stratCfg.AssetClass)
+	assert.Equal(t, "stock", stratCfg.AssetClass)
 	assert.Equal(t, false, stratCfg.Indicators.EnableOI)
 	assert.Equal(t, false, stratCfg.Indicators.EnableFundingRate)
 	assert.Equal(t, true, stratCfg.Indicators.EnableVolume)

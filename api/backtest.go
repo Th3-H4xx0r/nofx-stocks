@@ -539,7 +539,14 @@ func (s *Server) handleBacktestKlines(c *gin.Context) {
 	startTime := time.Unix(cfg.StartTS, 0)
 	endTime := time.Unix(cfg.EndTS, 0)
 
-	klines, err := market.GetKlinesRange(symbol, timeframe, startTime, endTime)
+	fetchCfg := market.FetchConfig{Source: "binance"}
+	if cfg.AssetClass == "stock" {
+		fetchCfg.Source = "alpaca"
+		fetchCfg.ApiKey = cfg.Alpaca.APIKey
+		fetchCfg.SecretKey = cfg.Alpaca.SecretKey
+	}
+
+	klines, err := market.GetKlinesRangeWithConfig(symbol, timeframe, startTime, endTime, fetchCfg)
 	if err != nil {
 		SafeInternalError(c, "Fetch klines", err)
 		return
@@ -791,7 +798,7 @@ func (s *Server) hydrateBacktestAlpacaConfig(cfg *backtest.BacktestConfig) error
 	if cfg == nil {
 		return fmt.Errorf("config is nil")
 	}
-	if cfg.AssetClass != "stocks" {
+	if cfg.AssetClass != "stock" {
 		return nil
 	}
 	// If keys are already provided, return

@@ -34,22 +34,22 @@ func calculateLocalIndicators(klines []market.Kline) IndicatorResult {
 	result := IndicatorResult{}
 
 	if len(klines) >= 12 {
-		result.EMA12 = market.ExportCalculateEMA(klines, 12)
+		result.EMA12 = market.CalculateEMA(klines, 12)
 	}
 	if len(klines) >= 26 {
-		result.EMA26 = market.ExportCalculateEMA(klines, 26)
-		result.MACD = market.ExportCalculateMACD(klines)
+		result.EMA26 = market.CalculateEMA(klines, 26)
+		result.MACD = market.CalculateMACD(klines)
 	}
 	if len(klines) > 14 {
-		result.RSI14 = market.ExportCalculateRSI(klines, 14)
+		result.RSI14 = market.CalculateRSI(klines, 14)
 	}
 	if len(klines) >= 20 {
-		result.BOLLUp, result.BOLLMid, result.BOLLLow = market.ExportCalculateBOLL(klines, 20, 2.0)
+		result.BOLLUp, result.BOLLMid, result.BOLLLow = market.CalculateBOLL(klines, 20, 2.0)
 		// SMA20 就是 BOLL 中轨
 		result.SMA20 = result.BOLLMid
 	}
 	if len(klines) > 14 {
-		result.ATR14 = market.ExportCalculateATR(klines, 14)
+		result.ATR14 = market.CalculateATR(klines, 14)
 	}
 
 	return result

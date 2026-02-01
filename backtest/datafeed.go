@@ -76,7 +76,7 @@ func (df *DataFeed) loadAll() error {
 			fetchCfg := market.FetchConfig{
 				Source: "binance",
 			}
-			if df.cfg.AssetClass == "stocks" {
+			if df.cfg.AssetClass == "stock" {
 				fetchCfg.Source = "alpaca"
 				fetchCfg.ApiKey = df.cfg.Alpaca.APIKey
 				fetchCfg.SecretKey = df.cfg.Alpaca.SecretKey
