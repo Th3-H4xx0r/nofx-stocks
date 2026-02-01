@@ -30,6 +30,7 @@ const SUPPORTED_EXCHANGE_TEMPLATES = [
   { exchange_type: 'hyperliquid', name: 'Hyperliquid', type: 'dex' as const },
   { exchange_type: 'aster', name: 'Aster DEX', type: 'dex' as const },
   { exchange_type: 'lighter', name: 'Lighter', type: 'dex' as const },
+  { exchange_type: 'alpaca', name: 'Alpaca', type: 'stock' as const },
 ]
 
 interface ExchangeConfigModalProps {
@@ -50,7 +51,10 @@ interface ExchangeConfigModalProps {
     lighterWalletAddr?: string,
     lighterPrivateKey?: string,
     lighterApiKeyPrivateKey?: string,
-    lighterApiKeyIndex?: number
+    lighterApiKeyIndex?: number,
+    alpacaApiKey?: string,
+    alpacaSecretKey?: string,
+    alpacaPaper?: boolean
   ) => Promise<void>
   onDelete: (exchangeId: string) => void
   onClose: () => void
@@ -132,8 +136,8 @@ function ExchangeCard({
       <span
         className="text-xs px-2 py-0.5 rounded-full"
         style={{
-          background: template.type === 'cex' ? 'rgba(240, 185, 11, 0.2)' : 'rgba(139, 92, 246, 0.2)',
-          color: template.type === 'cex' ? '#F0B90B' : '#A78BFA',
+          background: template.type === 'cex' ? 'rgba(240, 185, 11, 0.2)' : template.type === 'stock' ? 'rgba(59, 130, 246, 0.2)' : 'rgba(139, 92, 246, 0.2)',
+          color: template.type === 'cex' ? '#F0B90B' : template.type === 'stock' ? '#60A5FA' : '#A78BFA',
         }}
       >
         {template.type.toUpperCase()}
@@ -177,6 +181,11 @@ export function ExchangeConfigModal({
   const [lighterApiKeyPrivateKey, setLighterApiKeyPrivateKey] = useState('')
   const [lighterApiKeyIndex, setLighterApiKeyIndex] = useState(0)
 
+  // Alpaca fields
+  const [alpacaApiKey, setAlpacaApiKey] = useState('')
+  const [alpacaSecretKey, setAlpacaSecretKey] = useState('')
+  const [alpacaPaper, setAlpacaPaper] = useState(true)
+
   // Other state
   const [secureInputTarget, setSecureInputTarget] = useState<null | 'hyperliquid' | 'aster' | 'lighter'>(null)
   const [isSaving, setIsSaving] = useState(false)
@@ -204,6 +213,7 @@ export function ExchangeConfigModal({
     hyperliquid: { url: 'https://app.hyperliquid.xyz/join/AITRADING', hasReferral: true },
     aster: { url: 'https://www.asterdex.com/en/referral/fdfc0e', hasReferral: true },
     lighter: { url: 'https://app.lighter.xyz/?referral=68151432', hasReferral: true },
+    alpaca: { url: 'https://app.alpaca.markets/signup', hasReferral: false },
   }
 
   // Initialize form when editing
@@ -221,6 +231,9 @@ export function ExchangeConfigModal({
       setLighterWalletAddr(selectedExchange.lighterWalletAddr || '')
       setLighterApiKeyPrivateKey('')
       setLighterApiKeyIndex(selectedExchange.lighterApiKeyIndex || 0)
+      setAlpacaApiKey(selectedExchange.alpacaApiKey || '')
+      setAlpacaSecretKey(selectedExchange.alpacaSecretKey || '')
+      setAlpacaPaper(selectedExchange.alpacaPaper !== undefined ? selectedExchange.alpacaPaper : true)
     }
   }, [editingExchangeId, selectedExchange])
 
@@ -327,6 +340,9 @@ export function ExchangeConfigModal({
       } else if (currentExchangeType === 'lighter') {
         if (!lighterWalletAddr.trim() || !lighterApiKeyPrivateKey.trim()) return
         await onSave(exchangeId, exchangeType, trimmedAccountName, '', '', '', testnet, undefined, undefined, undefined, undefined, lighterWalletAddr.trim(), '', lighterApiKeyPrivateKey.trim(), lighterApiKeyIndex)
+      } else if (currentExchangeType === 'alpaca') {
+        if (!alpacaApiKey.trim() || !alpacaSecretKey.trim()) return
+        await onSave(exchangeId, exchangeType, trimmedAccountName, '', '', '', testnet, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, alpacaApiKey.trim(), alpacaSecretKey.trim(), alpacaPaper)
       } else {
         if (!apiKey.trim() || !secretKey.trim()) return
         await onSave(exchangeId, exchangeType, trimmedAccountName, apiKey.trim(), secretKey.trim(), '', testnet)
@@ -339,6 +355,7 @@ export function ExchangeConfigModal({
   const stepLabels = language === 'zh' ? ['选择交易所', '配置账户'] : ['Select Exchange', 'Configure']
   const cexExchanges = SUPPORTED_EXCHANGE_TEMPLATES.filter(t => t.type === 'cex')
   const dexExchanges = SUPPORTED_EXCHANGE_TEMPLATES.filter(t => t.type === 'dex')
+  const stockExchanges = SUPPORTED_EXCHANGE_TEMPLATES.filter(t => t.type === 'stock')
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 overflow-y-auto backdrop-blur-sm">
@@ -411,6 +428,24 @@ export function ExchangeConfigModal({
               <div className="space-y-4">
                 <div className="text-sm font-semibold" style={{ color: '#EAECEF' }}>
                   {language === 'zh' ? '选择您的交易所' : 'Choose Your Exchange'}
+                </div>
+
+                {/* Stock Exchanges */}
+                <div className="space-y-3">
+                  <div className="text-xs font-medium uppercase tracking-wide" style={{ color: '#60A5FA' }}>
+                    {language === 'zh' ? '股票交易所 (Stock)' : 'Stock Exchanges'}
+                  </div>
+                  <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
+                    {stockExchanges.map((template) => (
+                      <ExchangeCard
+                        key={template.exchange_type}
+                        template={template}
+                        selected={selectedExchangeType === template.exchange_type}
+                        onClick={() => handleSelectExchange(template.exchange_type)}
+                        disabled={webCryptoStatus !== 'secure' && webCryptoStatus !== 'disabled'}
+                      />
+                    ))}
+                  </div>
                 </div>
 
                 {/* CEX */}
@@ -501,6 +536,54 @@ export function ExchangeConfigModal({
                   required
                 />
               </div>
+
+              {/* Alpaca Fields */}
+              {currentExchangeType === 'alpaca' && (
+                <>
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-2 text-sm font-semibold" style={{ color: '#EAECEF' }}>
+                      <Key className="w-4 h-4" style={{ color: '#F0B90B' }} />
+                      Alpaca API Key ID *
+                    </label>
+                    <input
+                      type="text"
+                      value={alpacaApiKey}
+                      onChange={(e) => setAlpacaApiKey(e.target.value)}
+                      placeholder="Enter Alpaca API Key ID"
+                      className="w-full px-4 py-3 rounded-xl"
+                      style={{ background: '#0B0E11', border: '1px solid #2B3139', color: '#EAECEF' }}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-2 text-sm font-semibold" style={{ color: '#EAECEF' }}>
+                      <Shield className="w-4 h-4" style={{ color: '#F0B90B' }} />
+                      Alpaca Secret Key *
+                    </label>
+                    <input
+                      type="password"
+                      value={alpacaSecretKey}
+                      onChange={(e) => setAlpacaSecretKey(e.target.value)}
+                      placeholder="Enter Alpaca Secret Key"
+                      className="w-full px-4 py-3 rounded-xl"
+                      style={{ background: '#0B0E11', border: '1px solid #2B3139', color: '#EAECEF' }}
+                      required
+                    />
+                  </div>
+                  <div className="flex items-center gap-2 p-3 rounded-lg border border-white/10" style={{ background: '#0B0E11' }}>
+                    <input
+                      type="checkbox"
+                      id="alpacaPaper"
+                      checked={alpacaPaper}
+                      onChange={(e) => setAlpacaPaper(e.target.checked)}
+                      className="w-4 h-4"
+                    />
+                    <label htmlFor="alpacaPaper" className="text-sm font-medium cursor-pointer" style={{ color: '#EAECEF' }}>
+                      Paper Trading (Testnet)
+                    </label>
+                  </div>
+                </>
+              )}
 
               {/* CEX Fields */}
               {(currentExchangeType === 'binance' || currentExchangeType === 'bybit' || currentExchangeType === 'okx' || currentExchangeType === 'bitget' || currentExchangeType === 'gate' || currentExchangeType === 'kucoin') && (

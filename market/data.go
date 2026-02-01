@@ -230,6 +230,8 @@ func GetWithExchange(symbol, exchange string) (*Data, error) {
 	currentEMA20 := calculateEMA(klines3m, 20)
 	currentMACD := calculateMACD(klines3m)
 	currentRSI7 := calculateRSI(klines3m, 7)
+	currentVWAP := calculateVWAP(klines3m)
+	currentLRSI := calculateLRSI(klines3m, 0.5)
 
 	// Calculate price change percentage
 	// 1-hour price change = price from 20 3-minute K-lines ago
@@ -274,6 +276,8 @@ func GetWithExchange(symbol, exchange string) (*Data, error) {
 		CurrentEMA20:      currentEMA20,
 		CurrentMACD:       currentMACD,
 		CurrentRSI7:       currentRSI7,
+		CurrentVWAP:       currentVWAP,
+		CurrentLRSI:       currentLRSI,
 		OpenInterest:      oiData,
 		FundingRate:       fundingRate,
 		IntradaySeries:    intradayData,
@@ -286,7 +290,18 @@ func GetWithExchange(symbol, exchange string) (*Data, error) {
 // primaryTimeframe: primary timeframe (used for calculating current indicators), defaults to timeframes[0]
 // count: number of K-lines for each timeframe
 func GetWithTimeframes(symbol string, timeframes []string, primaryTimeframe string, count int) (*Data, error) {
-	symbol = Normalize(symbol)
+	// Default behavior uses empty config (defaults to Binance/Hyperliquid logic inside GetWithTimeframesAndConfig)
+	return GetWithTimeframesAndConfig(symbol, timeframes, primaryTimeframe, count, FetchConfig{Source: "binance"})
+}
+
+// GetWithTimeframesAndConfig retrieves market data with specific configuration (e.g. Alpaca)
+func GetWithTimeframesAndConfig(symbol string, timeframes []string, primaryTimeframe string, count int, config FetchConfig) (*Data, error) {
+	// Only normalize if not stocks (Alpaca)
+	if config.Source != "alpaca" {
+		symbol = Normalize(symbol)
+	} else {
+		symbol = strings.ToUpper(symbol)
+	}
 
 	if len(timeframes) == 0 {
 		return nil, fmt.Errorf("at least one timeframe is required")
@@ -321,7 +336,20 @@ func GetWithTimeframes(symbol string, timeframes []string, primaryTimeframe stri
 		var klines []Kline
 		var err error
 
-		if isXyzAsset {
+		if config.Source == "alpaca" {
+			// Use Alpaca
+			klines, err = GetAlpacaKlines(symbol, tf, config.ApiKey, config.SecretKey, count) // Use count as limit? Or more?
+			// Alpaca needs 200 for good indicators
+			if count < 200 {
+				klines, err = GetAlpacaKlines(symbol, tf, config.ApiKey, config.SecretKey, 200)
+			} else {
+				klines, err = GetAlpacaKlines(symbol, tf, config.ApiKey, config.SecretKey, count)
+			}
+			if err != nil {
+				logger.Infof("⚠️ Failed to get %s %s K-line from Alpaca: %v", symbol, tf, err)
+				continue
+			}
+		} else if isXyzAsset {
 			// Use Hyperliquid API for xyz dex assets
 			klines, err = getKlinesFromHyperliquid(symbol, tf, 200)
 			if err != nil {
@@ -357,8 +385,8 @@ func GetWithTimeframes(symbol string, timeframes []string, primaryTimeframe stri
 		return nil, fmt.Errorf("Primary timeframe %s K-line data is empty", primaryTimeframe)
 	}
 
-	// Data staleness detection
-	if isStaleData(primaryKlines, symbol) {
+	// Data staleness detection (skip for Alpaca/Stocks as markets close)
+	if config.Source != "alpaca" && isStaleData(primaryKlines, symbol) {
 		logger.Infof("⚠️  WARNING: %s detected stale data (consecutive price freeze), skipping symbol", symbol)
 		return nil, fmt.Errorf("%s data is stale, possible cache failure", symbol)
 	}
@@ -368,19 +396,29 @@ func GetWithTimeframes(symbol string, timeframes []string, primaryTimeframe stri
 	currentEMA20 := calculateEMA(primaryKlines, 20)
 	currentMACD := calculateMACD(primaryKlines)
 	currentRSI7 := calculateRSI(primaryKlines, 7)
+	currentVWAP := calculateVWAP(primaryKlines)
+	currentLRSI := calculateLRSI(primaryKlines, 0.5)
 
 	// Calculate price changes
 	priceChange1h := calculatePriceChangeByBars(primaryKlines, primaryTimeframe, 60) // 1 hour
 	priceChange4h := calculatePriceChangeByBars(primaryKlines, primaryTimeframe, 240) // 4 hours
 
-	// Get OI data
-	oiData, err := getOpenInterestData(symbol)
-	if err != nil {
+	// Get OI data (Skip for Alpaca)
+	var oiData *OIData
+	if config.Source != "alpaca" {
+		oiData, _ = getOpenInterestData(symbol)
+		if oiData == nil {
+			oiData = &OIData{Latest: 0, Average: 0}
+		}
+	} else {
 		oiData = &OIData{Latest: 0, Average: 0}
 	}
 
-	// Get Funding Rate
-	fundingRate, _ := getFundingRate(symbol)
+	// Get Funding Rate (Skip for Alpaca)
+	var fundingRate float64
+	if config.Source != "alpaca" {
+		fundingRate, _ = getFundingRate(symbol)
+	}
 
 	return &Data{
 		Symbol:        symbol,
@@ -390,6 +428,8 @@ func GetWithTimeframes(symbol string, timeframes []string, primaryTimeframe stri
 		CurrentEMA20:  currentEMA20,
 		CurrentMACD:   currentMACD,
 		CurrentRSI7:   currentRSI7,
+		CurrentVWAP:   currentVWAP,
+		CurrentLRSI:   currentLRSI,
 		OpenInterest:  oiData,
 		FundingRate:   fundingRate,
 		TimeframeData: timeframeData,
@@ -415,6 +455,8 @@ func calculateTimeframeSeries(klines []Kline, timeframe string, count int) *Time
 		BOLLUpper:   make([]float64, 0, count),
 		BOLLMiddle:  make([]float64, 0, count),
 		BOLLLower:   make([]float64, 0, count),
+		VWAPValues:  make([]float64, 0, count),
+		LRSIValues:  make([]float64, 0, count),
 	}
 
 	// Get latest N data points based on count from config
@@ -473,6 +515,14 @@ func calculateTimeframeSeries(klines []Kline, timeframe string, count int) *Time
 			data.BOLLMiddle = append(data.BOLLMiddle, middle)
 			data.BOLLLower = append(data.BOLLLower, lower)
 		}
+
+		// Calculate VWAP (Accumulated from start of loaded klines)
+		vwap := calculateVWAP(klines[:i+1])
+		data.VWAPValues = append(data.VWAPValues, vwap)
+
+		// Calculate LRSI (Laguerre RSI) - Gamma 0.5
+		lrsi := calculateLRSI(klines[:i+1], 0.5)
+		data.LRSIValues = append(data.LRSIValues, lrsi)
 	}
 
 	// Calculate ATR14
@@ -692,6 +742,89 @@ func calculateBOLL(klines []Kline, period int, multiplier float64) (upper, middl
 	return upper, middle, lower
 }
 
+// calculateVWAP calculates Volume Weighted Average Price
+// VWAP = Sum(Price * Volume) / Sum(Volume)
+func calculateVWAP(klines []Kline) float64 {
+	if len(klines) == 0 {
+		return 0
+	}
+
+	sumPV := 0.0
+	sumVolume := 0.0
+
+	for _, k := range klines {
+		// Use typical price (High + Low + Close) / 3
+		typicalPrice := (k.High + k.Low + k.Close) / 3.0
+		sumPV += typicalPrice * k.Volume
+		sumVolume += k.Volume
+	}
+
+	if sumVolume == 0 {
+		return 0
+	}
+
+	return sumPV / sumVolume
+}
+
+// calculateLRSI calculates Laguerre RSI
+// gamma: damping factor (0.0 - 1.0), typical values 0.5 - 0.8
+func calculateLRSI(klines []Kline, gamma float64) float64 {
+	if len(klines) < 4 {
+		return 0
+	}
+
+	// Laguerre filter variables (L0, L1, L2, L3)
+	// We need to calculate them iteratively
+
+	// Initialize L values with the first price
+	// For simplicity, we can just use the last portion of data if it's large, but standard LRSI requires stabilization
+	// Here we iterate through the provided klines
+
+	l0, l1, l2, l3 := 0.0, 0.0, 0.0, 0.0
+
+	// Initialize with first candle
+	firstPrice := (klines[0].High + klines[0].Low) / 2.0
+	l0, l1, l2, l3 = firstPrice, firstPrice, firstPrice, firstPrice
+
+	for i := 1; i < len(klines); i++ {
+		price := (klines[i].High + klines[i].Low) / 2.0
+
+		l0New := (1 - gamma) * price + gamma * l0
+		l1New := -gamma * l0New + l0 + gamma * l1
+		l2New := -gamma * l1New + l1 + gamma * l2
+		l3New := -gamma * l2New + l2 + gamma * l3
+
+		l0, l1, l2, l3 = l0New, l1New, l2New, l3New
+	}
+
+	cu := 0.0
+	cd := 0.0
+
+	if l0 >= l1 {
+		cu = l0 - l1
+	} else {
+		cd = l1 - l0
+	}
+
+	if l1 >= l2 {
+		cu += l1 - l2
+	} else {
+		cd += l2 - l1
+	}
+
+	if l2 >= l3 {
+		cu += l2 - l3
+	} else {
+		cd += l3 - l2
+	}
+
+	if cu+cd == 0 {
+		return 0
+	}
+
+	return cu / (cu + cd) * 100
+}
+
 // calculateIntradaySeries calculates intraday series data
 func calculateIntradaySeries(klines []Kline) *IntradayData {
 	data := &IntradayData{
@@ -701,6 +834,8 @@ func calculateIntradaySeries(klines []Kline) *IntradayData {
 		RSI7Values:  make([]float64, 0, 10),
 		RSI14Values: make([]float64, 0, 10),
 		Volume:      make([]float64, 0, 10),
+		VWAPValues:  make([]float64, 0, 10),
+		LRSIValues:  make([]float64, 0, 10),
 	}
 
 	// Get latest 10 data points
@@ -734,6 +869,14 @@ func calculateIntradaySeries(klines []Kline) *IntradayData {
 			rsi14 := calculateRSI(klines[:i+1], 14)
 			data.RSI14Values = append(data.RSI14Values, rsi14)
 		}
+
+		// Calculate VWAP
+		vwap := calculateVWAP(klines[:i+1])
+		data.VWAPValues = append(data.VWAPValues, vwap)
+
+		// Calculate LRSI
+		lrsi := calculateLRSI(klines[:i+1], 0.5)
+		data.LRSIValues = append(data.LRSIValues, lrsi)
 	}
 
 	// Calculate 3m ATR14
@@ -747,6 +890,8 @@ func calculateLongerTermData(klines []Kline) *LongerTermData {
 	data := &LongerTermData{
 		MACDValues:  make([]float64, 0, 10),
 		RSI14Values: make([]float64, 0, 10),
+		VWAPValues:  make([]float64, 0, 10),
+		LRSIValues:  make([]float64, 0, 10),
 	}
 
 	// Calculate EMA
@@ -768,7 +913,7 @@ func calculateLongerTermData(klines []Kline) *LongerTermData {
 		data.AverageVolume = sum / float64(len(klines))
 	}
 
-	// Calculate MACD and RSI series
+	// Calculate series data
 	start := len(klines) - 10
 	if start < 0 {
 		start = 0
@@ -783,6 +928,12 @@ func calculateLongerTermData(klines []Kline) *LongerTermData {
 			rsi14 := calculateRSI(klines[:i+1], 14)
 			data.RSI14Values = append(data.RSI14Values, rsi14)
 		}
+
+		vwap := calculateVWAP(klines[:i+1])
+		data.VWAPValues = append(data.VWAPValues, vwap)
+
+		lrsi := calculateLRSI(klines[:i+1], 0.5)
+		data.LRSIValues = append(data.LRSIValues, lrsi)
 	}
 
 	return data
@@ -883,6 +1034,10 @@ func Format(data *Data) string {
 	sb.WriteString(fmt.Sprintf("current_price = %s, current_ema20 = %.3f, current_macd = %.3f, current_rsi (7 period) = %.3f\n\n",
 		priceStr, data.CurrentEMA20, data.CurrentMACD, data.CurrentRSI7))
 
+	if data.CurrentVWAP > 0 {
+		sb.WriteString(fmt.Sprintf("current_vwap = %.3f, current_lrsi = %.3f\n\n", data.CurrentVWAP, data.CurrentLRSI))
+	}
+
 	sb.WriteString(fmt.Sprintf("In addition, here is the latest %s open interest and funding rate for perps:\n\n",
 		data.Symbol))
 
@@ -917,6 +1072,14 @@ func Format(data *Data) string {
 
 		if len(data.IntradaySeries.RSI14Values) > 0 {
 			sb.WriteString(fmt.Sprintf("RSI indicators (14‑Period): %s\n\n", formatFloatSlice(data.IntradaySeries.RSI14Values)))
+		}
+
+		if len(data.IntradaySeries.VWAPValues) > 0 {
+			sb.WriteString(fmt.Sprintf("VWAP: %s\n\n", formatFloatSlice(data.IntradaySeries.VWAPValues)))
+		}
+
+		if len(data.IntradaySeries.LRSIValues) > 0 {
+			sb.WriteString(fmt.Sprintf("Laguerre RSI: %s\n\n", formatFloatSlice(data.IntradaySeries.LRSIValues)))
 		}
 
 		if len(data.IntradaySeries.Volume) > 0 {
@@ -1005,6 +1168,14 @@ func formatTimeframeData(sb *strings.Builder, data *TimeframeSeriesData) {
 
 	if len(data.RSI14Values) > 0 {
 		sb.WriteString(fmt.Sprintf("RSI14: %s\n", formatFloatSlice(data.RSI14Values)))
+	}
+
+	if len(data.VWAPValues) > 0 {
+		sb.WriteString(fmt.Sprintf("VWAP: %s\n", formatFloatSlice(data.VWAPValues)))
+	}
+
+	if len(data.LRSIValues) > 0 {
+		sb.WriteString(fmt.Sprintf("LRSI: %s\n", formatFloatSlice(data.LRSIValues)))
 	}
 
 	if data.ATR14 > 0 {
@@ -1141,7 +1312,7 @@ func BuildDataFromKlines(symbol string, primary []Kline, longer []Kline) (*Data,
 		return nil, fmt.Errorf("primary series is empty")
 	}
 
-	symbol = Normalize(symbol)
+	// Note: We assume symbol is already normalized by the caller if necessary
 	current := primary[len(primary)-1]
 	currentPrice := current.Close
 
@@ -1166,154 +1337,14 @@ func BuildDataFromKlines(symbol string, primary []Kline, longer []Kline) (*Data,
 	return data, nil
 }
 
-func priceChangeFromSeries(series []Kline, duration time.Duration) float64 {
-	if len(series) == 0 || duration <= 0 {
-		return 0
-	}
-	last := series[len(series)-1]
-	target := last.CloseTime - duration.Milliseconds()
-	for i := len(series) - 1; i >= 0; i-- {
-		if series[i].CloseTime <= target {
-			price := series[i].Close
-			if price > 0 {
-				return ((last.Close - price) / price) * 100
-			}
-			break
-		}
-	}
-	return 0
-}
-
-// isStaleData detects stale data (consecutive price freeze)
-// Fix DOGEUSDT-style issue: consecutive N periods with completely unchanged prices indicate data source anomaly
-func isStaleData(klines []Kline, symbol string) bool {
-	if len(klines) < 5 {
-		return false // Insufficient data to determine
-	}
-
-	// Detection threshold: 5 consecutive 3-minute periods with unchanged price (15 minutes without fluctuation)
-	const stalePriceThreshold = 5
-	const priceTolerancePct = 0.0001 // 0.01% fluctuation tolerance (avoid false positives)
-
-	// Take the last stalePriceThreshold K-lines
-	recentKlines := klines[len(klines)-stalePriceThreshold:]
-	firstPrice := recentKlines[0].Close
-
-	// Check if all prices are within tolerance
-	for i := 1; i < len(recentKlines); i++ {
-		priceDiff := math.Abs(recentKlines[i].Close-firstPrice) / firstPrice
-		if priceDiff > priceTolerancePct {
-			return false // Price fluctuation exists, data is normal
-		}
-	}
-
-	// Additional check: MACD and volume
-	// If price is unchanged but MACD/volume shows normal fluctuation, it might be a real market situation (extremely low volatility)
-	// Check if volume is also 0 (data completely frozen)
-	allVolumeZero := true
-	for _, k := range recentKlines {
-		if k.Volume > 0 {
-			allVolumeZero = false
-			break
-		}
-	}
-
-	if allVolumeZero {
-		logger.Infof("⚠️  %s stale data confirmed: price freeze + zero volume", symbol)
-		return true
-	}
-
-	// Price frozen but has volume: might be extremely low volatility market, allow but log warning
-	logger.Infof("⚠️  %s detected extreme price stability (no fluctuation for %d consecutive periods), but volume is normal", symbol, stalePriceThreshold)
-	return false
-}
-
-// ========== 导出的指标计算函数（供测试使用） ==========
-
-// ExportCalculateEMA exports calculateEMA for testing
-func ExportCalculateEMA(klines []Kline, period int) float64 {
-	return calculateEMA(klines, period)
-}
-
-// ExportCalculateMACD exports calculateMACD for testing
-func ExportCalculateMACD(klines []Kline) float64 {
-	return calculateMACD(klines)
-}
-
-// ExportCalculateRSI exports calculateRSI for testing
-func ExportCalculateRSI(klines []Kline, period int) float64 {
-	return calculateRSI(klines, period)
-}
-
-// ExportCalculateATR exports calculateATR for testing
-func ExportCalculateATR(klines []Kline, period int) float64 {
-	return calculateATR(klines, period)
-}
-
-// ExportCalculateBOLL exports calculateBOLL for testing
-func ExportCalculateBOLL(klines []Kline, period int, multiplier float64) (upper, middle, lower float64) {
-	return calculateBOLL(klines, period, multiplier)
-}
-
-// calculateDonchian calculates Donchian channel (highest high, lowest low) for given period
-func calculateDonchian(klines []Kline, period int) (upper, lower float64) {
-	if len(klines) == 0 || period <= 0 {
-		return 0, 0
-	}
-
-	// Use all available klines if period > len(klines)
-	start := len(klines) - period
-	if start < 0 {
-		start = 0
-	}
-
-	upper = klines[start].High
-	lower = klines[start].Low
-
-	for i := start + 1; i < len(klines); i++ {
-		if klines[i].High > upper {
-			upper = klines[i].High
-		}
-		if klines[i].Low < lower {
-			lower = klines[i].Low
-		}
-	}
-
-	return upper, lower
-}
-
-// ExportCalculateDonchian exports calculateDonchian for testing
-func ExportCalculateDonchian(klines []Kline, period int) (float64, float64) {
-	return calculateDonchian(klines, period)
-}
-
-// Box period constants (in 1h candles)
-const (
-	ShortBoxPeriod = 72  // 3 days of 1h candles
-	MidBoxPeriod   = 240 // 10 days of 1h candles
-	LongBoxPeriod  = 500 // ~21 days of 1h candles
-)
-
-// calculateBoxData calculates multi-period box data from klines
-func calculateBoxData(klines []Kline, currentPrice float64) *BoxData {
-	box := &BoxData{
-		CurrentPrice: currentPrice,
-	}
-
-	if len(klines) == 0 {
-		return box
-	}
-
-	box.ShortUpper, box.ShortLower = calculateDonchian(klines, ShortBoxPeriod)
-	box.MidUpper, box.MidLower = calculateDonchian(klines, MidBoxPeriod)
-	box.LongUpper, box.LongLower = calculateDonchian(klines, LongBoxPeriod)
-
-	return box
-}
-
 // ExportCalculateBoxData exports calculateBoxData for testing
 func ExportCalculateBoxData(klines []Kline, currentPrice float64) *BoxData {
 	return calculateBoxData(klines, currentPrice)
+}
+
+// ExportCalculateRSI exports calculateRSI for testing/usage outside package
+func ExportCalculateRSI(klines []Kline, period int) float64 {
+	return calculateRSI(klines, period)
 }
 
 // GetBoxData fetches 1h klines and calculates box data for a symbol
@@ -1341,4 +1372,106 @@ func GetBoxData(symbol string) (*BoxData, error) {
 	currentPrice := klines[len(klines)-1].Close
 
 	return calculateBoxData(klines, currentPrice), nil
+}
+
+const LongBoxPeriod = 500
+
+// isStaleData checks if data is stale (consecutive identical close prices)
+func isStaleData(klines []Kline, symbol string) bool {
+	if len(klines) < 5 {
+		return false
+	}
+	// Check if last 3 candles have exactly same close price
+	last := klines[len(klines)-1].Close
+	for i := len(klines) - 2; i >= len(klines)-3; i-- {
+		if klines[i].Close != last {
+			return false
+		}
+	}
+	// If we are here, last 3 candles are identical.
+	// But for stablecoins or low volatility, this might happen.
+	// We should check if volume is also 0?
+	// For now, let's just assume it's stale if 5 identical closes.
+	for i := len(klines) - 4; i >= len(klines)-5; i-- {
+		if klines[i].Close != last {
+			return false
+		}
+	}
+	return true
+}
+
+// priceChangeFromSeries calculates price change over a duration
+func priceChangeFromSeries(klines []Kline, duration time.Duration) float64 {
+	if len(klines) < 2 {
+		return 0
+	}
+
+	endTime := klines[len(klines)-1].OpenTime
+	startTime := endTime - duration.Milliseconds()
+
+	// Find kline closest to startTime
+	startPrice := 0.0
+	for i := len(klines) - 1; i >= 0; i-- {
+		if klines[i].OpenTime <= startTime {
+			startPrice = klines[i].Close
+			break
+		}
+	}
+
+	// If no data far enough back, use the first available
+	if startPrice == 0 {
+		startPrice = klines[0].Close
+	}
+
+	currentPrice := klines[len(klines)-1].Close
+	if startPrice > 0 {
+		return ((currentPrice - startPrice) / startPrice) * 100
+	}
+	return 0
+}
+
+// calculateBoxData calculates Darvas Box like structure
+func calculateBoxData(klines []Kline, currentPrice float64) *BoxData {
+	if len(klines) == 0 {
+		return nil
+	}
+
+	// Define periods
+	shortPeriod := 72
+	midPeriod := 240
+	longPeriod := 500
+
+	calculateBounds := func(period int) (float64, float64) {
+		if len(klines) < period {
+			// If not enough data, use all available
+			period = len(klines)
+		}
+
+		high := -math.MaxFloat64
+		low := math.MaxFloat64
+
+		for i := len(klines) - period; i < len(klines); i++ {
+			if klines[i].High > high {
+				high = klines[i].High
+			}
+			if klines[i].Low < low {
+				low = klines[i].Low
+			}
+		}
+		return high, low
+	}
+
+	shortUpper, shortLower := calculateBounds(shortPeriod)
+	midUpper, midLower := calculateBounds(midPeriod)
+	longUpper, longLower := calculateBounds(longPeriod)
+
+	return &BoxData{
+		ShortUpper:   shortUpper,
+		ShortLower:   shortLower,
+		MidUpper:     midUpper,
+		MidLower:     midLower,
+		LongUpper:    longUpper,
+		LongLower:    longLower,
+		CurrentPrice: currentPrice,
+	}
 }

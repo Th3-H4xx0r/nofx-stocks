@@ -35,6 +35,9 @@ type StrategyConfig struct {
 	// Strategy type: "ai_trading" (default) or "grid_trading"
 	StrategyType string `json:"strategy_type,omitempty"`
 
+	// Asset Class: "crypto" (default) or "stocks"
+	AssetClass string `json:"asset_class,omitempty"`
+
 	// language setting: "zh" for Chinese, "en" for English
 	// This determines the language used for data formatting and prompt generation
 	Language string `json:"language,omitempty"`
@@ -51,6 +54,24 @@ type StrategyConfig struct {
 
 	// Grid trading configuration (only used when StrategyType == "grid_trading")
 	GridConfig *GridStrategyConfig `json:"grid_config,omitempty"`
+
+	// ML Configuration
+	MLConfig *MLConfig `json:"ml_config,omitempty"`
+	// News Configuration
+	NewsConfig *NewsConfig `json:"news_config,omitempty"`
+}
+
+// MLConfig machine learning configuration
+type MLConfig struct {
+	ModelType  string                 `json:"model_type"` // "lstm_trend", "reinforcement_learning", "sentiment_analysis"
+	Parameters map[string]interface{} `json:"parameters,omitempty"`
+}
+
+// NewsConfig news API configuration
+type NewsConfig struct {
+	EnableNews    bool     `json:"enable_news"`
+	APIKey        string   `json:"api_key,omitempty"`
+	SourceDomains []string `json:"source_domains,omitempty"`
 }
 
 // GridStrategyConfig grid trading specific configuration
@@ -97,7 +118,7 @@ type PromptSectionsConfig struct {
 
 // CoinSourceConfig coin source configuration
 type CoinSourceConfig struct {
-	// source type: "static" | "ai500" | "oi_top" | "oi_low" | "mixed"
+	// source type: "static" | "ai500" | "oi_top" | "oi_low" | "mixed" | "stock_suggestions"
 	SourceType string `json:"source_type"`
 	// static coin list (used when source_type = "static")
 	StaticCoins []string `json:"static_coins,omitempty"`
@@ -115,6 +136,8 @@ type CoinSourceConfig struct {
 	UseOILow bool `json:"use_oi_low"`
 	// OI Low maximum count
 	OILowLimit int `json:"oi_low_limit,omitempty"`
+	// whether to use stock suggestions
+	UseStockSuggestions bool `json:"use_stock_suggestions,omitempty"`
 	// Note: API URLs are now built automatically using NofxOSAPIKey from IndicatorConfig
 }
 
@@ -133,6 +156,11 @@ type IndicatorConfig struct {
 	EnableVolume      bool `json:"enable_volume"`
 	EnableOI          bool `json:"enable_oi"`           // open interest
 	EnableFundingRate bool `json:"enable_funding_rate"` // funding rate
+
+	// New Stock Indicators
+	EnableVWAP bool `json:"enable_vwap"` // Volume Weighted Average Price
+	EnableLRSI bool `json:"enable_lrsi"` // Laguerre RSI
+
 	// EMA period configuration
 	EMAPeriods []int `json:"ema_periods,omitempty"` // default [20, 50]
 	// RSI period configuration
@@ -220,6 +248,11 @@ type RiskControlConfig struct {
 	MinRiskRewardRatio float64 `json:"min_risk_reward_ratio"`
 	// Min AI confidence to open position (AI guided)
 	MinConfidence int `json:"min_confidence"`
+
+	// New Risk Controls for Stocks/All
+	DailyLossLimit  float64 `json:"daily_loss_limit,omitempty"`  // Stop trading if daily loss exceeds this amount
+	DailyProfitGoal float64 `json:"daily_profit_goal,omitempty"` // Stop trading if daily profit reaches this amount
+	EnforcePDT      bool    `json:"enforce_pdt,omitempty"`       // Enforce Pattern Day Trader rules (stocks)
 }
 
 // NewStrategyStore creates a new StrategyStore
