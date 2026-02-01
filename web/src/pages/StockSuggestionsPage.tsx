@@ -1,6 +1,5 @@
 import { DeepVoidBackground } from '../components/DeepVoidBackground'
 import { Container } from '../components/Container'
-import { t } from '../i18n/translations'
 import { useLanguage } from '../contexts/LanguageContext'
 
 export function StockSuggestionsPage() {
