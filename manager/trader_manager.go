@@ -417,10 +417,12 @@ func (tm *TraderManager) RemoveTrader(traderID string) {
 
 	if t, exists := tm.traders[traderID]; exists {
 		// Stop the trader if it's running (this ensures the goroutine exits)
-		status := t.GetStatus()
-		if isRunning, ok := status["is_running"].(bool); ok && isRunning {
-			logger.Infof("⏹ Stopping trader %s before removing from memory...", traderID)
-			t.Stop()
+		if t != nil {
+			status := t.GetStatus()
+			if isRunning, ok := status["is_running"].(bool); ok && isRunning {
+				logger.Infof("⏹ Stopping trader %s before removing from memory...", traderID)
+				t.Stop()
+			}
 		}
 		delete(tm.traders, traderID)
 		logger.Infof("✓ Trader %s removed from memory", traderID)
@@ -706,6 +708,10 @@ func (tm *TraderManager) addTraderFromStore(traderCfg *store.Trader, aiModelCfg 
 		traderConfig.LighterAPIKeyPrivateKey = string(exchangeCfg.LighterAPIKeyPrivateKey)
 		traderConfig.LighterAPIKeyIndex = exchangeCfg.LighterAPIKeyIndex
 		traderConfig.LighterTestnet = exchangeCfg.Testnet
+	case "alpaca":
+		traderConfig.AlpacaAPIKey = string(exchangeCfg.AlpacaAPIKey)
+		traderConfig.AlpacaSecretKey = string(exchangeCfg.AlpacaSecretKey)
+		traderConfig.AlpacaPaper = exchangeCfg.AlpacaPaper
 	}
 
 	// Set API keys based on AI model (convert EncryptedString to string)
